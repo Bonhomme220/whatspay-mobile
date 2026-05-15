@@ -69,5 +69,6 @@ export const api = {
   get:    <T>(path: string) => request<T>("GET",    `${BASE}/api${path}`),
   post:   <T>(path: string, body: unknown) => request<T>("POST",   `${BASE}/api${path}`, body),
   put:    <T>(path: string, body: unknown) => request<T>("PUT",    `${BASE}/api${path}`, body),
+  patch:  <T>(path: string, body: unknown) => request<T>("PATCH",  `${BASE}/api${path}`, body),
   delete: <T>(path: string) => request<T>("DELETE", `${BASE}/api${path}`),
 };
