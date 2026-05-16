@@ -137,7 +137,7 @@ export default function LoginPage() {
               />
               <span className="text-gray-500 text-sm">Souvenez-vous de moi</span>
             </label>
-            <a href="/forgot-password" className="text-sm font-medium" style={{ color: "#1ba24b" }}>
+            <a href="https://whatspay.africa/admin/forgot-password" className="text-sm font-medium" style={{ color: "#1ba24b" }}>
               Mot de passe oublié?
             </a>
           </div>
@@ -164,7 +164,7 @@ export default function LoginPage() {
         {/* Inscription */}
         <p className="text-center text-sm mt-5 text-gray-500">
           Pas inscrit(e)?{" "}
-          <a href="/register" className="font-medium" style={{ color: "#1ba24b" }}>
+          <a href="https://whatspay.africa/admin/registration/diffuseur" className="font-medium" style={{ color: "#1ba24b" }}>
             Inscrivez vous
           </a>
         </p>
