@@ -27,30 +27,37 @@ const EMPTY: FormData = {
 };
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
-function Input({ label, ...props }: { label: string } & React.InputHTMLAttributes<HTMLInputElement>) {
+function FieldError({ msg }: { msg?: string }) {
+  if (!msg) return null;
+  return <p className="text-red-500 text-xs mt-1">{msg}</p>;
+}
+
+function Input({ label, error, ...props }: { label: string; error?: string } & React.InputHTMLAttributes<HTMLInputElement>) {
   return (
     <div>
       <label className="block text-gray-700 text-sm font-medium mb-1.5">{label}</label>
       <input
         {...props}
-        className="w-full rounded-lg border border-gray-200 px-3 py-3 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:border-green-500 transition"
+        className={`w-full rounded-lg border px-3 py-3 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:border-green-500 transition ${error ? "border-red-400" : "border-gray-200"}`}
         style={{ backgroundColor: "rgba(43,94,94,0.1)" }}
       />
+      <FieldError msg={error} />
     </div>
   );
 }
 
-function Select({ label, children, ...props }: { label: string } & React.SelectHTMLAttributes<HTMLSelectElement> & { children: React.ReactNode }) {
+function Select({ label, error, children, ...props }: { label: string; error?: string } & React.SelectHTMLAttributes<HTMLSelectElement> & { children: React.ReactNode }) {
   return (
     <div>
       <label className="block text-gray-700 text-sm font-medium mb-1.5">{label}</label>
       <select
         {...props}
-        className="w-full rounded-lg border border-gray-200 px-3 py-3 text-sm text-gray-700 focus:outline-none focus:border-green-500 transition"
+        className={`w-full rounded-lg border px-3 py-3 text-sm text-gray-700 focus:outline-none focus:border-green-500 transition ${error ? "border-red-400" : "border-gray-200"}`}
         style={{ backgroundColor: "rgba(43,94,94,0.1)" }}
       >
         {children}
       </select>
+      <FieldError msg={error} />
     </div>
   );
 }
@@ -117,48 +124,59 @@ export default function RegisterPage() {
     return [...arr, val];
   }
 
-  // ── Validation par étape ───────────────────────────────────────────────────
-  function validate(): string {
-    if (step === 0) {
-      if (!form.firstname.trim()) return "Prénom requis.";
-      if (!form.lastname.trim())  return "Nom requis.";
-      if (!form.email.trim())     return "Email requis.";
-      if (!form.birthdate)        return "Date de naissance requise.";
-      const age = (Date.now() - new Date(form.birthdate).getTime()) / (365.25 * 86400000);
-      if (age < 16) return "Vous devez avoir au moins 16 ans.";
+  // ── Validation champ par champ ────────────────────────────────────────────
+  type FieldErrors = Partial<Record<string, string>>;
+  const [fe, setFe] = useState<FieldErrors>({});
+
+  function getStepErrors(s: number): FieldErrors {
+    const errs: FieldErrors = {};
+    if (s === 0) {
+      if (!form.firstname.trim()) errs.firstname = "Prénom requis.";
+      if (!form.lastname.trim())  errs.lastname  = "Nom requis.";
+      if (!form.email.trim())     errs.email     = "Email requis.";
+      else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) errs.email = "Email invalide.";
+      if (!form.birthdate) {
+        errs.birthdate = "Date de naissance requise.";
+      } else {
+        const age = (Date.now() - new Date(form.birthdate).getTime()) / (365.25 * 86400000);
+        if (age < 16) errs.birthdate = "Vous devez avoir au moins 16 ans.";
+      }
     }
-    if (step === 1) {
-      if (!form.country_id)  return "Pays requis.";
-      if (!form.locality_id) return "Ville requise.";
-      if (!form.phone.trim()) return "Téléphone requis.";
+    if (s === 1) {
+      if (!form.country_id)   errs.country_id  = "Pays requis.";
+      if (!form.locality_id)  errs.locality_id = "Ville requise.";
+      if (!form.phone.trim()) errs.phone       = "Téléphone requis.";
     }
-    if (step === 2) {
-      if (!form.vuesmoyen || Number(form.vuesmoyen) < 1) return "Nombre de vues requis.";
-      if (!form.lang_id)  return "Langue requise.";
-      if (!form.study_id) return "Niveau d'études requis.";
-      if (form.categories.length < 1)    return "Sélectionnez au moins 1 catégorie.";
-      if (form.categories.length > 4)    return "Maximum 4 catégories.";
-      if (form.contentTypes.length < 1)  return "Sélectionnez au moins 1 type de contenu.";
+    if (s === 2) {
+      if (!form.vuesmoyen || Number(form.vuesmoyen) < 1) errs.vuesmoyen = "Nombre de vues requis (min. 1).";
+      if (!form.lang_id)  errs.lang_id  = "Langue requise.";
+      if (!form.study_id) errs.study_id = "Niveau d'études requis.";
+      if (form.categories.length < 1)   errs.categories   = "Sélectionnez au moins 1 catégorie.";
+      if (form.categories.length > 4)   errs.categories   = "Maximum 4 catégories.";
+      if (form.contentTypes.length < 1) errs.contentTypes = "Sélectionnez au moins 1 type de contenu.";
     }
-    if (step === 3) {
-      if (!form.password)               return "Mot de passe requis.";
-      if (form.password.length < 8)     return "Minimum 8 caractères.";
-      if (form.password !== form.password_confirmation) return "Les mots de passe ne correspondent pas.";
+    if (s === 3) {
+      if (!form.password)             errs.password = "Mot de passe requis.";
+      else if (form.password.length < 8) errs.password = "Minimum 8 caractères.";
+      if (!form.password_confirmation)       errs.password_confirmation = "Confirmez le mot de passe.";
+      else if (form.password !== form.password_confirmation) errs.password_confirmation = "Les mots de passe ne correspondent pas.";
     }
-    return "";
+    return errs;
   }
 
   function next() {
-    const err = validate();
-    if (err) { setError(err); return; }
+    const errs = getStepErrors(step);
+    if (Object.keys(errs).length > 0) { setFe(errs); return; }
+    setFe({});
     setError("");
     setStep((s) => s + 1);
   }
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    const err = validate();
-    if (err) { setError(err); return; }
+    const errs = getStepErrors(step);
+    if (Object.keys(errs).length > 0) { setFe(errs); return; }
+    setFe({});
     setError("");
     setLoading(true);
     try {
@@ -228,26 +246,26 @@ export default function RegisterPage() {
           {step === 0 && (
             <>
               <div className="grid grid-cols-2 gap-3">
-                <Input label="Prénom" value={form.firstname} onChange={(e) => set("firstname", e.target.value)} placeholder="Jean" required />
-                <Input label="Nom" value={form.lastname} onChange={(e) => set("lastname", e.target.value)} placeholder="Dupont" required />
+                <Input label="Prénom" value={form.firstname} onChange={(e) => { set("firstname", e.target.value); setFe((f) => ({ ...f, firstname: "" })); }} placeholder="Jean" error={fe.firstname} />
+                <Input label="Nom" value={form.lastname} onChange={(e) => { set("lastname", e.target.value); setFe((f) => ({ ...f, lastname: "" })); }} placeholder="Dupont" error={fe.lastname} />
               </div>
-              <Input label="Adresse mail" type="email" value={form.email} onChange={(e) => set("email", e.target.value)} placeholder="votre@mail.com" required />
-              <Input label="Date de naissance" type="date" value={form.birthdate} onChange={(e) => set("birthdate", e.target.value)} max={new Date(Date.now() - 16 * 365.25 * 86400000).toISOString().split("T")[0]} required />
+              <Input label="Adresse mail" type="email" value={form.email} onChange={(e) => { set("email", e.target.value); setFe((f) => ({ ...f, email: "" })); }} placeholder="votre@mail.com" error={fe.email} />
+              <Input label="Date de naissance" type="date" value={form.birthdate} onChange={(e) => { set("birthdate", e.target.value); setFe((f) => ({ ...f, birthdate: "" })); }} max={new Date(Date.now() - 16 * 365.25 * 86400000).toISOString().split("T")[0]} error={fe.birthdate} />
             </>
           )}
 
           {/* ── Étape 1 : Localisation ── */}
           {step === 1 && (
             <>
-              <Select label="Pays" value={form.country_id} onChange={(e) => set("country_id", e.target.value)} required>
+              <Select label="Pays" value={form.country_id} onChange={(e) => { set("country_id", e.target.value); setFe((f) => ({ ...f, country_id: "" })); }} error={fe.country_id}>
                 <option value="">Sélectionnez votre pays</option>
                 {countries.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
               </Select>
-              <Select label="Ville / Localité" value={form.locality_id} onChange={(e) => set("locality_id", e.target.value)} required disabled={!localities.length}>
+              <Select label="Ville / Localité" value={form.locality_id} onChange={(e) => { set("locality_id", e.target.value); setFe((f) => ({ ...f, locality_id: "" })); }} disabled={!localities.length} error={fe.locality_id}>
                 <option value="">{localities.length ? "Sélectionnez votre ville" : "Choisissez d'abord un pays"}</option>
                 {localities.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
               </Select>
-              <Input label="Numéro de téléphone" type="tel" value={form.phone} onChange={(e) => set("phone", e.target.value)} placeholder="97000000" required />
+              <Input label="Numéro de téléphone" type="tel" value={form.phone} onChange={(e) => { set("phone", e.target.value); setFe((f) => ({ ...f, phone: "" })); }} placeholder="97000000" error={fe.phone} />
             </>
           )}
 
@@ -258,22 +276,22 @@ export default function RegisterPage() {
                 label="Vues moyennes par statut WhatsApp"
                 type="number" min={1}
                 value={form.vuesmoyen}
-                onChange={(e) => set("vuesmoyen", e.target.value)}
+                onChange={(e) => { set("vuesmoyen", e.target.value); setFe((f) => ({ ...f, vuesmoyen: "" })); }}
                 placeholder="Ex : 500"
-                required
+                error={fe.vuesmoyen}
               />
-              <Select label="Langue de diffusion" value={form.lang_id} onChange={(e) => set("lang_id", e.target.value)} required>
+              <Select label="Langue de diffusion" value={form.lang_id} onChange={(e) => { set("lang_id", e.target.value); setFe((f) => ({ ...f, lang_id: "" })); }} error={fe.lang_id}>
                 <option value="">Sélectionnez une langue</option>
                 {langs.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
               </Select>
-              <Select label="Niveau d'études" value={form.study_id} onChange={(e) => set("study_id", e.target.value)} required>
+              <Select label="Niveau d'études" value={form.study_id} onChange={(e) => { set("study_id", e.target.value); setFe((f) => ({ ...f, study_id: "" })); }} error={fe.study_id}>
                 <option value="">Sélectionnez votre niveau</option>
                 {studies.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
               </Select>
 
               {/* Catégories */}
               <div>
-                <label className="block text-gray-700 text-sm font-medium mb-2">
+                <label className={`block text-sm font-medium mb-2 ${fe.categories ? "text-red-500" : "text-gray-700"}`}>
                   Catégories WhatsApp <span className="text-gray-400 font-normal">(1 à 4)</span>
                 </label>
                 <div className="grid grid-cols-2 gap-2">
@@ -282,7 +300,7 @@ export default function RegisterPage() {
                     return (
                       <button
                         key={c.id} type="button"
-                        onClick={() => set("categories", toggleArr(form.categories, c.id, 4))}
+                        onClick={() => { set("categories", toggleArr(form.categories, c.id, 4)); setFe((f) => ({ ...f, categories: "" })); }}
                         className={`text-xs px-3 py-2 rounded-lg border text-left transition-colors ${
                           checked ? "border-green-500 bg-green-50 text-green-700 font-semibold" : "border-gray-200 text-gray-600"
                         }`}
@@ -292,11 +310,12 @@ export default function RegisterPage() {
                     );
                   })}
                 </div>
+                <FieldError msg={fe.categories} />
               </div>
 
               {/* Types de contenu */}
               <div>
-                <label className="block text-gray-700 text-sm font-medium mb-2">
+                <label className={`block text-sm font-medium mb-2 ${fe.contentTypes ? "text-red-500" : "text-gray-700"}`}>
                   Types de contenu <span className="text-gray-400 font-normal">(au moins 1)</span>
                 </label>
                 <div className="grid grid-cols-2 gap-2">
@@ -305,7 +324,7 @@ export default function RegisterPage() {
                     return (
                       <button
                         key={ct.id} type="button"
-                        onClick={() => set("contentTypes", toggleArr(form.contentTypes, ct.id))}
+                        onClick={() => { set("contentTypes", toggleArr(form.contentTypes, ct.id)); setFe((f) => ({ ...f, contentTypes: "" })); }}
                         className={`text-xs px-3 py-2 rounded-lg border text-left transition-colors ${
                           checked ? "border-green-500 bg-green-50 text-green-700 font-semibold" : "border-gray-200 text-gray-600"
                         }`}
@@ -315,6 +334,7 @@ export default function RegisterPage() {
                     );
                   })}
                 </div>
+                <FieldError msg={fe.contentTypes} />
               </div>
             </>
           )}
@@ -348,18 +368,19 @@ export default function RegisterPage() {
                   Au moins 8 caractères, une majuscule, un chiffre et un caractère spécial.{" "}
                   <span className="text-gray-500 not-italic font-medium">Ex : MonMot2024!</span>
                 </p>
+                <FieldError msg={fe.password} />
               </div>
               <div>
                 <label className="block text-gray-700 text-sm font-medium mb-1.5">Confirmer le mot de passe</label>
                 <input
                   type={showPwd ? "text" : "password"}
                   value={form.password_confirmation}
-                  onChange={(e) => set("password_confirmation", e.target.value)}
+                  onChange={(e) => { set("password_confirmation", e.target.value); setFe((f) => ({ ...f, password_confirmation: "" })); }}
                   placeholder="Répétez le mot de passe"
-                  required
-                  className="w-full rounded-lg border border-gray-200 px-3 py-3 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:border-green-500 transition"
+                  className={`w-full rounded-lg border px-3 py-3 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:border-green-500 transition ${fe.password_confirmation ? "border-red-400" : "border-gray-200"}`}
                   style={{ backgroundColor: "rgba(43,94,94,0.1)" }}
                 />
+                <FieldError msg={fe.password_confirmation} />
               </div>
               <Input
                 label="Code ambassadeur (optionnel)"
@@ -375,7 +396,7 @@ export default function RegisterPage() {
             {step > 0 && (
               <button
                 type="button"
-                onClick={() => { setError(""); setStep((s) => s - 1); }}
+                onClick={() => { setError(""); setFe({}); setStep((s) => s - 1); }}
                 className="flex-1 py-3 rounded-lg border border-gray-200 text-gray-600 text-sm font-semibold"
               >
                 Retour
