@@ -64,8 +64,9 @@ export default function MissionDetailPage() {
   const router  = useRouter();
   const { id }  = useParams<{ id: string }>();
   const [mission, setMission] = useState<Mission | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [copied, setCopied]   = useState(false);
+  const [loading, setLoading]   = useState(true);
+  const [copied, setCopied]     = useState(false);
+  const [accepting, setAccepting] = useState(false);
 
   const load = useCallback(() => {
     api.get<Mission>(`/missions/${id}`)
@@ -75,6 +76,15 @@ export default function MissionDetailPage() {
   }, [id, router]);
 
   useEffect(() => { load(); }, [load]);
+
+  async function handleAccept() {
+    setAccepting(true);
+    try {
+      await api.post(`/missions/${id}/accept`, {});
+      load();
+    } catch {}
+    setAccepting(false);
+  }
 
   function copyLink() {
     const legend = mission?.task?.legend ?? "";
@@ -96,10 +106,11 @@ export default function MissionDetailPage() {
   const t       = mission.task;
   const pill    = STATUS_PILL[mission.status] ?? { label: mission.status, cls: "bg-gray-100 text-gray-600" };
   const stepIdx = STEP_STATUS[mission.status] ?? 0;
-  const isActive    = ["ASSIGNED", "PENDING"].includes(mission.status);
+  const isAssigned  = mission.status === "ASSIGNED";
+  const isPending   = mission.status === "PENDING";
   const isSubmited  = mission.status === "SUBMITED";
-  const isDone   = mission.status === "SUBMISSION_ACCEPTED";
-  const isRejected = mission.status === "SUBMISSION_REJECTED";
+  const isDone      = mission.status === "SUBMISSION_ACCEPTED";
+  const isRejected  = mission.status === "SUBMISSION_REJECTED";
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -134,7 +145,7 @@ export default function MissionDetailPage() {
         </div>
       </div>
 
-      <div className={`px-4 -mt-2 space-y-4 ${isActive || isSubmited ? 'pb-28' : 'pb-8'}`}>
+      <div className={`px-4 -mt-2 space-y-4 ${isAssigned || isPending || isSubmited ? 'pb-28' : 'pb-8'}`}>
 
         {/* ── Stepper ── */}
         <div className="bg-white rounded-2xl shadow-sm p-4">
@@ -349,7 +360,24 @@ export default function MissionDetailPage() {
             </span>
           </div>
         </div>
-      ) : isActive ? (
+      ) : isAssigned ? (
+        <div className="fixed bottom-16 left-0 right-0 px-4 pb-2">
+          <button
+            onClick={handleAccept}
+            disabled={accepting}
+            className="w-full bg-green-600 text-white text-center font-semibold py-4 rounded-2xl shadow-lg text-sm disabled:opacity-60 flex items-center justify-center gap-2"
+          >
+            {accepting ? (
+              <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+            ) : (
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            )}
+            Accepter la mission
+          </button>
+        </div>
+      ) : isPending ? (
         <div className="fixed bottom-16 left-0 right-0 px-4 pb-2">
           <Link
             href={`/campagnes/${mission.id}/soumettre`}

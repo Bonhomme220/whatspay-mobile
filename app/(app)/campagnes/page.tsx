@@ -82,7 +82,7 @@ export default function CampagnesPage() {
     setAccepting(id);
     try {
       await api.post("/missions/" + id + "/accept", {});
-      load();
+      router.push(`/campagnes/${id}`);
     } catch {}
     setAccepting(null);
   }
