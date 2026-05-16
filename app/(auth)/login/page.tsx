@@ -21,10 +21,13 @@ export default function LoginPage() {
     setLoading(true);
     try {
       const data = await auth.login(email, password, remember, profil);
-      // Redirection selon le profil connecté
-      if (data.profil === "DIFFUSEUR") router.push("/dashboard");
-      else if (data.profil === "ANNONCEUR") router.push("/dashboard");
-      else router.push("/dashboard");
+      if (data.profil === "DIFFUSEUR") {
+        router.push("/dashboard");
+      } else if (data.profil === "ANNONCEUR") {
+        window.location.href = "https://whatspay.africa/admin/client/dashboard";
+      } else {
+        window.location.href = "https://whatspay.africa/admin/dashboard";
+      }
     } catch (err: any) {
       setError(err?.message ?? "Identifiants incorrects.");
     } finally {
