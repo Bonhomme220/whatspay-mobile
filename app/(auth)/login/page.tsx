@@ -164,7 +164,7 @@ export default function LoginPage() {
         {/* Inscription */}
         <p className="text-center text-sm mt-5 text-gray-500">
           Pas inscrit(e)?{" "}
-          <a href="https://whatspay.africa/admin/registration/diffuseur" className="font-medium" style={{ color: "#1ba24b" }}>
+          <a href="/register" className="font-medium" style={{ color: "#1ba24b" }}>
             Inscrivez vous
           </a>
         </p>
