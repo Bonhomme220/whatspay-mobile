@@ -20,9 +20,13 @@ export default function LoginPage() {
     setError("");
     setLoading(true);
     try {
-      const result = await auth.login(email, password, remember, profil);
-      router.push(result.enabled === false ? "/reactivation" : "/dashboard");
+      await auth.login(email, password, remember, profil);
+      router.push("/dashboard");
     } catch (err: any) {
+      if (err?.inactive === true || err?.message === "Compte inactif.") {
+        router.push(`/reactivation?email=${encodeURIComponent(email)}`);
+        return;
+      }
       setError(err?.message ?? "Identifiants incorrects.");
     } finally {
       setLoading(false);
