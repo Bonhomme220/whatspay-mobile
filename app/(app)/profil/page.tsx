@@ -26,6 +26,7 @@ interface Profile {
   categories: Category[];
   wallet_balance: number;
   completed_campaigns: number;
+  conversion_score: number;
   is_ambassador: boolean;
   ambassador_code: string | null;
   ambassador_stat: AmbassadorStat | null;
@@ -121,8 +122,17 @@ export default function ProfilPage() {
             <div className="text-green-100 text-[10px] mt-0.5">Vues moyennes</div>
           </div>
           <div className="py-2.5 px-3 rounded-xl" style={{ background: "rgba(255,255,255,0.15)" }}>
-            <div className="text-white font-bold text-lg leading-tight">{fmtDate(profile.created_at).split(" ").slice(1).join(" ")}</div>
-            <div className="text-green-100 text-[10px] mt-0.5">Membre depuis</div>
+            {profile.completed_campaigns > 0 ? (
+              <>
+                <div className="text-white font-bold text-lg leading-tight">{profile.conversion_score.toFixed(1)}%</div>
+                <div className="text-green-100 text-[10px] mt-0.5">Taux de conversion</div>
+              </>
+            ) : (
+              <>
+                <div className="text-white font-bold text-lg leading-tight">—</div>
+                <div className="text-green-100 text-[10px] mt-0.5">Taux de conversion</div>
+              </>
+            )}
           </div>
         </div>
       </div>
