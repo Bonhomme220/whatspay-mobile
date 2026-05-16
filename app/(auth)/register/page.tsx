@@ -200,6 +200,15 @@ export default function RegisterPage() {
           <Image src="/logo.png" alt="WhatsPAY" width={140} height={44} className="object-contain" />
         </div>
 
+        {step === 0 && (
+          <div className="flex items-center justify-center gap-2 bg-green-50 border border-green-200 rounded-xl px-3 py-2 mb-5">
+            <svg className="w-4 h-4 text-green-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <p className="text-green-700 text-sm font-semibold">L'inscription est 100% gratuite</p>
+          </div>
+        )}
+
         <StepDots step={step} total={STEPS.length} />
 
         <h3 className="text-gray-800 text-lg font-semibold mb-0.5">
@@ -335,6 +344,10 @@ export default function RegisterPage() {
                     </svg>
                   </button>
                 </div>
+                <p className="text-gray-400 text-xs italic mt-1.5 leading-relaxed">
+                  Au moins 8 caractères, une majuscule, un chiffre et un caractère spécial.{" "}
+                  <span className="text-gray-500 not-italic font-medium">Ex : MonMot2024!</span>
+                </p>
               </div>
               <div>
                 <label className="block text-gray-700 text-sm font-medium mb-1.5">Confirmer le mot de passe</label>
