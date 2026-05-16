@@ -102,7 +102,7 @@ export default function RegisterPage() {
       setLangs(l);
       setStudies(st);
       setContenttypes(ct);
-    });
+    }).catch(() => {});
   }, []);
 
   useEffect(() => {
