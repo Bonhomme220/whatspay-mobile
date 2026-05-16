@@ -48,9 +48,16 @@ export default function ForgotPasswordPage() {
               Un code de réinitialisation a été envoyé à <strong>{email}</strong>. Consultez votre boîte mail.
             </p>
             <button
-              onClick={() => router.push("/login")}
+              onClick={() => router.push(`/reset-password?email=${encodeURIComponent(email)}`)}
               className="w-full text-white font-semibold py-3 rounded-lg text-sm"
               style={{ backgroundColor: "#1ba24b" }}
+            >
+              Entrer le code reçu
+            </button>
+            <button
+              onClick={() => router.push("/login")}
+              className="w-full mt-2 text-sm font-medium py-2"
+              style={{ color: "#1ba24b" }}
             >
               Retour à la connexion
             </button>
