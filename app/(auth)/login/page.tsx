@@ -7,7 +7,7 @@ import Image from "next/image";
 
 export default function LoginPage() {
   const router = useRouter();
-  const [profil, setProfil]     = useState("DIFFUSEUR");
+  const profil = "DIFFUSEUR";
   const [email, setEmail]       = useState("");
   const [password, setPassword] = useState("");
   const [remember, setRemember] = useState(false);
@@ -20,14 +20,8 @@ export default function LoginPage() {
     setError("");
     setLoading(true);
     try {
-      const data = await auth.login(email, password, remember, profil);
-      if (data.profil === "DIFFUSEUR") {
-        router.push("/dashboard");
-      } else if (data.profil === "ANNONCEUR") {
-        window.location.href = "https://whatspay.africa/admin/client/dashboard";
-      } else {
-        window.location.href = "https://whatspay.africa/admin/dashboard";
-      }
+      await auth.login(email, password, remember, profil);
+      router.push("/dashboard");
     } catch (err: any) {
       setError(err?.message ?? "Identifiants incorrects.");
     } finally {
@@ -61,22 +55,6 @@ export default function LoginPage() {
         <p className="text-gray-500 text-sm mb-5">Entrez vos identifiants pour vous connecter</p>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-
-          {/* Profil */}
-          <div>
-            <label className="block text-gray-700 text-sm font-medium mb-1.5">Profil</label>
-            <select
-              value={profil}
-              onChange={(e) => setProfil(e.target.value)}
-              className="w-full rounded-lg border border-gray-200 px-3 py-3 text-sm text-gray-700 focus:outline-none focus:border-green-500 transition"
-              style={{ backgroundColor: "rgba(43,94,94,0.1)" }}
-            >
-              <option value="">Indiquez votre profil</option>
-              <option value="DIFFUSEUR">DIFFUSEUR</option>
-              <option value="ANNONCEUR">ANNONCEUR</option>
-              <option value="ADMIN">ADMIN</option>
-            </select>
-          </div>
 
           {/* Email */}
           <div>
