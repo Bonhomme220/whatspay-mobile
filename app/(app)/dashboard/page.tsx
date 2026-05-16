@@ -139,7 +139,7 @@ export default function DashboardPage() {
       {/* ── Tutoriel vidéo ── */}
       <div className="mx-4 mt-4 rounded-2xl overflow-hidden shadow-sm">
         <a
-          href="https://www.youtube.com/@WhatsPAY"
+          href="https://youtube.com/shorts/NWTxbAtdOPg?feature=share"
           target="_blank"
           rel="noopener noreferrer"
           className="block"
@@ -165,7 +165,7 @@ export default function DashboardPage() {
             Regardez ce guide complet pour apprendre à accepter des campagnes, publier sur WhatsApp et soumettre vos preuves correctement.
           </p>
           <a
-            href="https://www.youtube.com/@WhatsPAY"
+            href="https://youtube.com/shorts/NWTxbAtdOPg?feature=share"
             target="_blank"
             rel="noopener noreferrer"
             className="mt-3 inline-flex items-center gap-1.5 bg-red-600 text-white text-xs font-semibold px-3 py-2 rounded-lg"

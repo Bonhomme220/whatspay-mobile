@@ -8,6 +8,7 @@ import { tokenStore } from "@/lib/api";
 import { AppProvider, useApp } from "@/contexts/AppContext";
 import Sidebar from "@/components/Sidebar";
 import NotificationBell from "@/components/NotificationBell";
+import PwaInstallBanner from "@/components/PwaInstallBanner";
 
 function Inner({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -47,7 +48,10 @@ function Inner({ children }: { children: React.ReactNode }) {
       </header>
 
       {/* pt-14 = header height, pb-16 = bottom nav height */}
-      <main className="pt-14 pb-16">{children}</main>
+      <main className="pt-14 pb-16">
+        <PwaInstallBanner />
+        {children}
+      </main>
 
       {/* Bottom nav */}
       <nav className="fixed bottom-0 left-0 right-0 z-30 bg-white border-t border-gray-100 h-16 flex">
