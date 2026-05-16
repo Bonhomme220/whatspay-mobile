@@ -137,7 +137,7 @@ export default function LoginPage() {
               />
               <span className="text-gray-500 text-sm">Souvenez-vous de moi</span>
             </label>
-            <a href="https://whatspay.africa/admin/forgot-password" className="text-sm font-medium" style={{ color: "#1ba24b" }}>
+            <a href="https://whatspay.africa/admin/forgotten_password" className="text-sm font-medium" style={{ color: "#1ba24b" }}>
               Mot de passe oublié?
             </a>
           </div>
