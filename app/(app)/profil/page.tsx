@@ -8,6 +8,7 @@ import { api, auth } from "@/lib/api";
 interface Category { id: string; name: string; }
 interface Country  { id: string; name: string; }
 interface Locality { id: string; name: string; country_id: string; }
+interface Occupation { id: string; name: string; }
 interface AmbassadorStat { active_referrals: number; total_referrals: number; }
 interface DeletionRequest { id: string; status: string; reason: string; }
 
@@ -21,6 +22,7 @@ interface Profile {
   vuesmoyen: number;
   country: Country | null;
   locality: Locality | null;
+  occupation: Occupation | null;
   categories: Category[];
   wallet_balance: number;
   completed_campaigns: number;
@@ -145,6 +147,7 @@ export default function ProfilPage() {
           <InfoRow label="Date de naissance" value={fmtDate(profile.birthdate)} />
           <InfoRow label="Pays" value={profile.country?.name ?? "—"} />
           <InfoRow label="Localité" value={profile.locality?.name ?? "—"} />
+          <InfoRow label="Profession" value={profile.occupation?.name ?? "—"} />
         </div>
 
         {/* ── Catégories ── */}
@@ -283,25 +286,28 @@ function EditSheet({ profile, onClose, onSuccess }: {
   onSuccess: () => void;
 }) {
   const [form, setForm] = useState({
-    firstname:   profile.firstname  ?? "",
-    lastname:    profile.lastname   ?? "",
-    phone:       profile.phone      ?? "",
-    birthdate:   profile.birthdate  ?? "",
-    vuesmoyen:   String(profile.vuesmoyen ?? ""),
-    country_id:  profile.country?.id  ?? "",
-    locality_id: profile.locality?.id ?? "",
+    firstname:     profile.firstname       ?? "",
+    lastname:      profile.lastname        ?? "",
+    phone:         profile.phone           ?? "",
+    birthdate:     profile.birthdate       ?? "",
+    vuesmoyen:     String(profile.vuesmoyen ?? ""),
+    country_id:    profile.country?.id     ?? "",
+    locality_id:   profile.locality?.id   ?? "",
+    occupation_id: profile.occupation?.id ?? "",
   });
   const [selectedCats, setSelectedCats] = useState<string[]>(profile.categories.map((c) => c.id));
 
-  const [countries,   setCountries]   = useState<Country[]>([]);
-  const [localities,  setLocalities]  = useState<Locality[]>([]);
-  const [categories,  setCategories]  = useState<Category[]>([]);
+  const [countries,    setCountries]   = useState<Country[]>([]);
+  const [localities,   setLocalities]  = useState<Locality[]>([]);
+  const [categories,   setCategories]  = useState<Category[]>([]);
+  const [occupations,  setOccupations] = useState<Occupation[]>([]);
   const [saving, setSaving]     = useState(false);
   const [error, setError]       = useState<string | null>(null);
 
   useEffect(() => {
     api.get<Country[]>("/countries").then(setCountries).catch(() => {});
     api.get<Category[]>("/categories").then(setCategories).catch(() => {});
+    api.get<Occupation[]>("/occupations").then(setOccupations).catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -322,7 +328,7 @@ function EditSheet({ profile, onClose, onSuccess }: {
     setSaving(true);
     setError(null);
     try {
-      await api.put("/profile", { ...form, categories: selectedCats });
+      await api.put("/profile", { ...form, categories: selectedCats, occupation_id: form.occupation_id || null });
       onSuccess();
     } catch (err: unknown) {
       const e = err as { message?: string };
@@ -386,6 +392,21 @@ function EditSheet({ profile, onClose, onSuccess }: {
               >
                 <option value="">-- Sélectionner --</option>
                 {localities.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
+              </select>
+            </div>
+          )}
+
+          {/* Profession */}
+          {occupations.length > 0 && (
+            <div>
+              <label className="text-gray-500 text-xs font-semibold uppercase tracking-wide block mb-1.5">Profession</label>
+              <select
+                value={form.occupation_id}
+                onChange={(e) => setForm({ ...form, occupation_id: e.target.value })}
+                className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-green-300"
+              >
+                <option value="">-- Sélectionner --</option>
+                {occupations.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}
               </select>
             </div>
           )}

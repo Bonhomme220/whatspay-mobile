@@ -11,7 +11,7 @@ interface Ref { id: string; name: string; }
 interface FormData {
   firstname: string; lastname: string; email: string; birthdate: string;
   country_id: string; locality_id: string; phone: string; phonecountry_id: string;
-  vuesmoyen: string; lang_id: string; study_id: string;
+  vuesmoyen: string; lang_id: string; study_id: string; occupation_id: string;
   categories: string[]; contentTypes: string[];
   password: string; password_confirmation: string;
   ambassador_code: string;
@@ -20,7 +20,7 @@ interface FormData {
 const EMPTY: FormData = {
   firstname: "", lastname: "", email: "", birthdate: "",
   country_id: "", locality_id: "", phone: "", phonecountry_id: "",
-  vuesmoyen: "", lang_id: "", study_id: "",
+  vuesmoyen: "", lang_id: "", study_id: "", occupation_id: "",
   categories: [], contentTypes: [],
   password: "", password_confirmation: "",
   ambassador_code: "",
@@ -88,6 +88,7 @@ export default function RegisterPage() {
   const [langs,         setLangs]         = useState<Ref[]>([]);
   const [studies,       setStudies]       = useState<Ref[]>([]);
   const [contenttypes,  setContenttypes]  = useState<Ref[]>([]);
+  const [occupations,   setOccupations]   = useState<Ref[]>([]);
 
   useEffect(() => {
     Promise.all([
@@ -96,12 +97,14 @@ export default function RegisterPage() {
       api.get<Ref[]>("/langs"),
       api.get<Ref[]>("/studies"),
       api.get<Ref[]>("/contenttypes"),
-    ]).then(([c, cat, l, st, ct]) => {
+      api.get<Ref[]>("/occupations"),
+    ]).then(([c, cat, l, st, ct, occ]) => {
       setCountries(c);
       setCategories(cat);
       setLangs(l);
       setStudies(st);
       setContenttypes(ct);
+      setOccupations(occ);
     }).catch(() => {});
   }, []);
 
@@ -194,6 +197,7 @@ export default function RegisterPage() {
         study_id:             form.study_id,
         categories:           form.categories,
         contentTypes:         form.contentTypes,
+        occupation_id:        form.occupation_id || null,
         password:             form.password,
         password_confirmation: form.password_confirmation,
         ambassador_code:      form.ambassador_code || null,
@@ -287,6 +291,10 @@ export default function RegisterPage() {
               <Select label="Niveau d'études" value={form.study_id} onChange={(e) => { set("study_id", e.target.value); setFe((f) => ({ ...f, study_id: "" })); }} error={fe.study_id}>
                 <option value="">Sélectionnez votre niveau</option>
                 {studies.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+              </Select>
+              <Select label="Profession" value={form.occupation_id} onChange={(e) => set("occupation_id", e.target.value)}>
+                <option value="">Sélectionnez votre profession</option>
+                {occupations.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}
               </Select>
 
               {/* Catégories */}
