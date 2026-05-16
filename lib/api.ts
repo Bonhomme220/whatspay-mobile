@@ -49,7 +49,7 @@ async function request<T>(method: string, url: string, body?: unknown): Promise<
 // ── Auth ───────────────────────────────────────────────────────────────────────
 export const auth = {
   login: async (email: string, password: string, _rememberMe = false, profil = "DIFFUSEUR") => {
-    const data = await request<{ token: string; profil: string; user: StoredUser }>(
+    const data = await request<{ token: string; profil: string; enabled: boolean; user: StoredUser }>(
       "POST",
       `${BASE}/api/auth/login`,
       { email, password, profil }

@@ -20,8 +20,8 @@ export default function LoginPage() {
     setError("");
     setLoading(true);
     try {
-      await auth.login(email, password, remember, profil);
-      router.push("/dashboard");
+      const result = await auth.login(email, password, remember, profil);
+      router.push(result.enabled === false ? "/reactivation" : "/dashboard");
     } catch (err: any) {
       setError(err?.message ?? "Identifiants incorrects.");
     } finally {
