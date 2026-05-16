@@ -100,8 +100,8 @@ export default function RegisterPage() {
 
   useEffect(() => {
     if (!form.country_id) { setLocalities([]); return; }
-    api.get<Ref[]>(`/localities/by-country/${form.country_id}`)
-      .then(setLocalities)
+    api.get<{ data: Ref[] } | Ref[]>(`/localities/by-country/${form.country_id}`)
+      .then((res) => setLocalities(Array.isArray(res) ? res : (res as any).data ?? []))
       .catch(() => setLocalities([]));
     set("locality_id", "");
     set("phonecountry_id", form.country_id);
