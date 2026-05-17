@@ -12,7 +12,7 @@ COPY . .
 ARG NEXT_PUBLIC_API_URL=https://whatspay.africa
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 
-RUN npm run build
+RUN --mount=type=cache,id=nextjs-cache,target=/app/.next/cache npm run build
 
 # ── Production stage ───────────────────────────────────────────────────────────
 FROM node:20-alpine AS runner
