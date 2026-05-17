@@ -9,6 +9,7 @@ import { AppProvider, useApp } from "@/contexts/AppContext";
 import Sidebar from "@/components/Sidebar";
 import NotificationBell from "@/components/NotificationBell";
 import PwaInstallBanner from "@/components/PwaInstallBanner";
+import { usePushNotifications } from "@/hooks/usePushNotifications";
 
 function Inner({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -18,6 +19,8 @@ function Inner({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!tokenStore.get()) router.push("/login");
   }, [router]);
+
+  usePushNotifications();
 
   const navItems = [
     { href: "/dashboard", label: "Accueil",   icon: <IconHome /> },
