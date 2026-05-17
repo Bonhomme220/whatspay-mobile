@@ -27,6 +27,10 @@ interface Profile {
   wallet_balance: number;
   completed_campaigns: number;
   conversion_score: number;
+  acceptance_rate: number | null;
+  completion_rate: number | null;
+  total_clics: number;
+  unique_clics: number;
   is_ambassador: boolean;
   ambassador_code: string | null;
   ambassador_stat: AmbassadorStat | null;
@@ -138,6 +142,54 @@ export default function ProfilPage() {
       </div>
 
       <div className="mx-4 -mt-6 space-y-4 pb-10">
+
+        {/* ── Performance ── */}
+        {(profile.acceptance_rate !== null || profile.completion_rate !== null || profile.total_clics > 0) && (() => {
+          const ar = profile.acceptance_rate ?? 0;
+          const cr = profile.completion_rate ?? 0;
+          const hasRates = profile.acceptance_rate !== null || profile.completion_rate !== null;
+          const fiabilite = hasRates ? Math.round(cr * 0.6 + ar * 0.4) : null;
+          const fiabColor = fiabilite === null ? "text-gray-400" : fiabilite >= 70 ? "text-green-600" : fiabilite >= 40 ? "text-yellow-500" : "text-red-500";
+          return (
+            <div className="bg-white rounded-2xl shadow-sm p-4">
+              <p className="text-gray-500 text-[10px] font-bold uppercase tracking-widest mb-3">Performance</p>
+              <div className="grid grid-cols-2 gap-3">
+                {profile.acceptance_rate !== null && (
+                  <StatCard
+                    label="Taux d'acceptation"
+                    value={`${profile.acceptance_rate}%`}
+                    color={ar >= 70 ? "text-green-600" : ar >= 40 ? "text-yellow-500" : "text-red-500"}
+                    sub="soumissions validées"
+                  />
+                )}
+                {profile.completion_rate !== null && (
+                  <StatCard
+                    label="Taux de complétion"
+                    value={`${profile.completion_rate}%`}
+                    color={cr >= 70 ? "text-green-600" : cr >= 40 ? "text-yellow-500" : "text-red-500"}
+                    sub="missions menées à bout"
+                  />
+                )}
+                {fiabilite !== null && (
+                  <StatCard
+                    label="Score de fiabilité"
+                    value={`${fiabilite}/100`}
+                    color={fiabColor}
+                    sub="complétion + acceptation"
+                  />
+                )}
+                {profile.total_clics > 0 && (
+                  <StatCard
+                    label="Clics générés"
+                    value={fmt(profile.total_clics)}
+                    color="text-blue-600"
+                    sub={`dont ${fmt(profile.unique_clics)} uniques`}
+                  />
+                )}
+              </div>
+            </div>
+          );
+        })()}
 
         {/* ── Infos personnelles ── */}
         <div className="bg-white rounded-2xl shadow-sm p-4 space-y-3">
@@ -275,6 +327,17 @@ export default function ProfilPage() {
         </div>
       )}
 
+    </div>
+  );
+}
+
+// ── StatCard ───────────────────────────────────────────────────────────────────
+function StatCard({ label, value, color, sub }: { label: string; value: string; color: string; sub?: string }) {
+  return (
+    <div className="bg-gray-50 rounded-xl px-3 py-2.5">
+      <p className="text-gray-400 text-[10px] font-semibold uppercase tracking-wide mb-1">{label}</p>
+      <p className={`font-bold text-base leading-tight ${color}`}>{value}</p>
+      {sub && <p className="text-gray-400 text-[10px] mt-0.5">{sub}</p>}
     </div>
   );
 }
