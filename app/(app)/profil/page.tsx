@@ -301,9 +301,9 @@ function EditSheet({ profile, onClose, onSuccess }: {
     phone:         profile.phone           ?? "",
     birthdate:     profile.birthdate       ?? "",
     vuesmoyen:     String(profile.vuesmoyen ?? ""),
-    country_id:    profile.country?.id     ?? "",
-    locality_id:   profile.locality?.id   ?? "",
-    occupation_id: profile.occupation?.id ?? "",
+    country_id:    profile.country?.id    != null ? String(profile.country.id)    : "",
+    locality_id:   profile.locality?.id   != null ? String(profile.locality.id)   : "",
+    occupation_id: profile.occupation?.id != null ? String(profile.occupation.id) : "",
   });
   const [selectedCats, setSelectedCats] = useState<string[]>(profile.categories.map((c) => c.id));
 
