@@ -7,16 +7,31 @@ import { api } from "@/lib/api";
 
 const STORAGE_KEY = "wp_fcm_token";
 
+function waitForServiceWorkerActive(reg: ServiceWorkerRegistration): Promise<void> {
+  return new Promise((resolve) => {
+    if (reg.active) { resolve(); return; }
+    const sw = reg.installing ?? reg.waiting;
+    if (!sw) { resolve(); return; }
+    sw.addEventListener("statechange", function handler() {
+      if (sw.state === "activated") {
+        sw.removeEventListener("statechange", handler);
+        resolve();
+      }
+    });
+  });
+}
+
 export function usePushNotifications() {
   useEffect(() => {
-    if (typeof window === "undefined" || !("Notification" in window)) return;
+    if (typeof window === "undefined" || !("Notification" in window) || !("serviceWorker" in navigator)) return;
 
     async function init() {
       try {
-        // Enregistrer le service worker qui reçoit les notifs en arrière-plan
         const swReg = await navigator.serviceWorker.register("/firebase-messaging-sw.js");
 
-        // Demander la permission (ne redemandera pas si déjà accordée/refusée)
+        // Attendre que le SW soit actif avant d'appeler getToken
+        await waitForServiceWorkerActive(swReg);
+
         const permission = await Notification.requestPermission();
         if (permission !== "granted") return;
 
@@ -24,18 +39,17 @@ export function usePushNotifications() {
         if (!messaging) return;
 
         const token = await getToken(messaging, {
-          vapidKey:            VAPID_KEY,
+          vapidKey: VAPID_KEY,
           serviceWorkerRegistration: swReg,
         });
         if (!token) return;
 
-        // Éviter d'envoyer le même token au backend à chaque montage
         if (localStorage.getItem(STORAGE_KEY) === token) return;
 
         await api.post("/fcm-token", { fcm_token: token });
         localStorage.setItem(STORAGE_KEY, token);
-      } catch {
-        // Erreur silencieuse — les notifications sont facultatives
+      } catch (err) {
+        console.warn("[FCM] Échec enregistrement push:", err);
       }
     }
 
