@@ -13,6 +13,12 @@ interface Transaction {
   status: string;
   created_at: string;
 }
+interface PendingWithdrawal {
+  id: string;
+  amount: number;
+  status: string;
+  created_at: string;
+}
 interface GainsData {
   balance: number;
   total_gain: number;
@@ -22,6 +28,7 @@ interface GainsData {
   total_vues: number;
   en_cours: number;
   par_vue: number;
+  pending_withdrawal: PendingWithdrawal | null;
   transactions: Transaction[];
 }
 
@@ -64,10 +71,12 @@ export default function GainsPage() {
   );
   if (!data) return null;
 
+  const hasPending = !!data.pending_withdrawal;
+
   return (
     <div className="min-h-screen bg-gray-50">
 
-      {/* ── Hero — même design exact que Campagnes ── */}
+      {/* ── Hero ── */}
       <div className="bg-green-600 px-5 pt-5 pb-14">
         <h1 className="text-white text-2xl font-bold">Mes Gains</h1>
         <p className="text-green-100 text-sm mt-0.5">Solde disponible</p>
@@ -90,7 +99,7 @@ export default function GainsPage() {
           ))}
         </div>
 
-        {/* Chips de stats — même style que les chips Campagnes */}
+        {/* Chips de stats */}
         <div className="grid grid-cols-2 gap-2 mt-4">
           {[
             { label: "Campagnes terminées", value: fmt(data.campagnes_terminees) },
@@ -129,8 +138,28 @@ export default function GainsPage() {
         </div>
       </div>
 
-      {/* ── Historique — chevauchement hero, même pattern que Campagnes ── */}
-      <div className="mx-4 -mt-6 bg-white rounded-2xl shadow-sm overflow-hidden mb-4">
+      {/* ── Bannière retrait en cours ── */}
+      {hasPending && (
+        <div className="mx-4 -mt-3 mb-3 relative z-10">
+          <div className="bg-amber-50 border border-amber-200 rounded-2xl px-4 py-3 flex items-start gap-3">
+            <div className="w-8 h-8 rounded-xl bg-amber-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+              <svg className="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <div>
+              <p className="text-amber-800 font-semibold text-sm">Retrait en cours de traitement</p>
+              <p className="text-amber-700 text-xs mt-0.5">
+                Votre retrait de <span className="font-semibold">{fmt(data.pending_withdrawal!.amount)} F</span> est en cours.
+                Il sera effectué dans un délai de 1 à 7 jours ouvrés.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Historique — chevauchement hero ── */}
+      <div className={`mx-4 ${hasPending ? "" : "-mt-6"} bg-white rounded-2xl shadow-sm overflow-hidden mb-4`}>
 
         {/* Header + filtres */}
         <div className="flex items-center gap-2 px-4 pt-4 pb-3 flex-wrap border-b border-gray-50">
@@ -193,6 +222,8 @@ export default function GainsPage() {
       {showWithdraw && (
         <WithdrawModal
           balance={data.balance}
+          hasPending={hasPending}
+          pendingAmount={data.pending_withdrawal?.amount}
           onClose={() => setShowWithdraw(false)}
           onSuccess={() => { setShowWithdraw(false); load(true); }}
         />
@@ -203,8 +234,10 @@ export default function GainsPage() {
 }
 
 // ── WithdrawModal ──────────────────────────────────────────────────────────────
-function WithdrawModal({ balance, onClose, onSuccess }: {
+function WithdrawModal({ balance, hasPending, pendingAmount, onClose, onSuccess }: {
   balance: number;
+  hasPending: boolean;
+  pendingAmount?: number;
   onClose: () => void;
   onSuccess: () => void;
 }) {
@@ -214,19 +247,48 @@ function WithdrawModal({ balance, onClose, onSuccess }: {
   const [error, setError]     = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
+  // Si retrait déjà en cours, on affiche directement l'info sans formulaire
+  if (hasPending) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-end" style={{ background: "rgba(0,0,0,0.5)" }} onClick={onClose}>
+        <div className="w-full bg-white rounded-t-3xl px-5 pt-6 pb-10" onClick={(e) => e.stopPropagation()}>
+          <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-5" />
+          <div className="flex flex-col items-center text-center gap-3 py-4">
+            <div className="w-16 h-16 rounded-2xl bg-amber-100 flex items-center justify-center">
+              <svg className="w-8 h-8 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <h2 className="text-gray-800 font-bold text-lg">Retrait en cours</h2>
+            <p className="text-gray-500 text-sm leading-relaxed">
+              Un retrait de <span className="font-semibold text-gray-700">{pendingAmount ? `${pendingAmount.toLocaleString("fr-FR")} F` : ""}</span> est déjà en cours de traitement.
+              {"\n"}Il sera effectué dans un délai de <span className="font-semibold text-gray-700">1 à 7 jours ouvrés</span>.
+            </p>
+            <button
+              onClick={onClose}
+              className="mt-2 w-full py-4 bg-gray-100 text-gray-600 font-semibold rounded-2xl text-sm"
+            >
+              Fermer
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
     setSub(true);
     try {
-      const res = await api.post<{ success: boolean; message: string }>("/withdraw", {
+      const res = await api.post<{ success: boolean; message: string; has_pending?: boolean }>("/withdraw", {
         amount: parseFloat(amount),
         withdrawal_method: "mobile_money",
         phone: phone.replace(/\D/g, ""),
       });
       if (res.success) {
         setSuccess(res.message);
-        setTimeout(onSuccess, 2000);
+        setTimeout(onSuccess, 3000);
       } else {
         setError(res.message);
       }
@@ -249,8 +311,19 @@ function WithdrawModal({ balance, onClose, onSuccess }: {
         </p>
 
         {success ? (
-          <div className="bg-green-50 border border-green-200 rounded-2xl p-4 text-center">
-            <p className="text-green-700 font-semibold text-sm">{success}</p>
+          <div className="flex flex-col items-center text-center gap-3 py-2">
+            <div className="w-16 h-16 rounded-2xl bg-green-100 flex items-center justify-center">
+              <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            <h3 className="text-gray-800 font-bold text-base">Demande envoyée !</h3>
+            <p className="text-gray-500 text-sm leading-relaxed">{success}</p>
+            <div className="w-full bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 mt-1">
+              <p className="text-amber-700 text-xs font-medium">
+                Vous pouvez suivre l&apos;état de votre retrait dans l&apos;historique ci-dessous.
+              </p>
+            </div>
           </div>
         ) : (
           <form onSubmit={submit} className="space-y-4">
@@ -314,15 +387,17 @@ function WithdrawModal({ balance, onClose, onSuccess }: {
 function StatusBadge({ status }: { status: string }) {
   const s = status?.toUpperCase();
   const color =
-    s === "COMPLETED" ? "text-green-600" :
-    s === "PENDING"   ? "text-orange-500" :
-    s === "FAILED"    ? "text-red-500" :
-    s === "CANCELLED" ? "text-gray-400" : "text-gray-400";
+    s === "COMPLETED"  ? "text-green-600" :
+    s === "PROCESSING" ? "text-amber-500" :
+    s === "PENDING"    ? "text-amber-500" :
+    s === "FAILED"     ? "text-red-500"   :
+    s === "CANCELLED"  ? "text-gray-400"  : "text-gray-400";
   const label =
-    s === "COMPLETED" ? "Complété" :
-    s === "PENDING"   ? "En attente" :
-    s === "FAILED"    ? "Échoué" :
-    s === "CANCELLED" ? "Annulé" : status;
+    s === "COMPLETED"  ? "Complété"              :
+    s === "PROCESSING" ? "En cours de traitement" :
+    s === "PENDING"    ? "En cours de traitement" :
+    s === "FAILED"     ? "Échoué"                :
+    s === "CANCELLED"  ? "Annulé"                : status;
 
   return <span className={`text-[10px] font-semibold ${color}`}>{label}</span>;
 }
