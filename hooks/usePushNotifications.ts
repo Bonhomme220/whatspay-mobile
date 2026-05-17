@@ -72,7 +72,7 @@ export function usePushNotifications() {
           // (utile après un reset de DB ou changement de session)
         }
 
-        const resp = await api.post("/fcm-token", { fcm_token: token });
+        const resp = await api.post("/fcm-token", { fcm_token: token }) as { data: unknown };
         dbg(`api response=${JSON.stringify(resp.data)}`);
         localStorage.setItem(STORAGE_KEY, token);
         dbg("done ✓");
