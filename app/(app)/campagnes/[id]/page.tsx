@@ -44,7 +44,7 @@ const STATUS_PILL: Record<string, { label: string; cls: string }> = {
 };
 const STEP_MSG: Record<string, string> = {
   SUBMISSION_ACCEPTED: "Mission validée. Votre gain a été crédité sur votre compte.",
-  SUBMITED:            "Vos résultats sont en cours de vérification par l'équipe.",
+  SUBMITED:            "Vos résultats sont en cours de vérification par l'équipe. Ce processus prend généralement entre 2 et 7 jours ouvrés.",
   PENDING:             "Soumettez votre preuve avant la date limite pour être payé.",
   ASSIGNED:            "Acceptez cette mission pour commencer.",
   SUBMISSION_REJECTED: "Votre soumission a été rejetée.",
