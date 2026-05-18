@@ -109,7 +109,7 @@ export default function OnboardingModal({ onboardingMissionId, onDone }: Props) 
           </h2>
 
           {/* Body or steps list */}
-          {"steps" in current ? (
+          {"steps" in current && current.steps ? (
             <div className="space-y-3 mb-6">
               {current.steps.map((s) => (
                 <div key={s.num} className="flex items-center gap-3">
