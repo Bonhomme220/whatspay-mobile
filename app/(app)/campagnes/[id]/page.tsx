@@ -11,7 +11,7 @@ interface Task {
   startdate: string; enddate: string; type: string;
   files: string | null; legend: string | null; url: string | null;
   client_name: string; categories: { id: string; name: string }[];
-  media_type: string | null;
+  media_type: string | null; is_onboarding: boolean;
 }
 interface Mission {
   id: string; status: string; expected_gain: number; gain: number;
@@ -106,11 +106,12 @@ export default function MissionDetailPage() {
   const t       = mission.task;
   const pill    = STATUS_PILL[mission.status] ?? { label: mission.status, cls: "bg-gray-100 text-gray-600" };
   const stepIdx = STEP_STATUS[mission.status] ?? 0;
-  const isAssigned  = mission.status === "ASSIGNED";
-  const isPending   = mission.status === "PENDING";
-  const isSubmited  = mission.status === "SUBMITED";
-  const isDone      = mission.status === "SUBMISSION_ACCEPTED";
-  const isRejected  = mission.status === "SUBMISSION_REJECTED";
+  const isAssigned   = mission.status === "ASSIGNED";
+  const isPending    = mission.status === "PENDING";
+  const isSubmited   = mission.status === "SUBMITED";
+  const isDone       = mission.status === "SUBMISSION_ACCEPTED";
+  const isRejected   = mission.status === "SUBMISSION_REJECTED";
+  const isOnboarding = t?.is_onboarding ?? false;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -217,6 +218,41 @@ export default function MissionDetailPage() {
             </Link>
           )}
         </div>
+
+        {/* ── Bannière onboarding ── */}
+        {isOnboarding && isAssigned && (
+          <div className="bg-yellow-50 border border-yellow-200 rounded-2xl px-4 py-4 flex items-start gap-3">
+            <span className="text-2xl flex-shrink-0">⭐</span>
+            <div>
+              <p className="text-yellow-800 text-sm font-bold mb-1">Mission de bienvenue — lis bien avant d'accepter</p>
+              <ol className="space-y-1">
+                {["Accepte la mission ci-dessous", "Télécharge l'image et copie la légende fournie", "Poste sur ton statut WhatsApp", "Reviens dans 24h pour soumettre avec le nombre de vues"].map((s, i) => (
+                  <li key={i} className="flex items-start gap-2 text-yellow-700 text-xs">
+                    <span className="w-4 h-4 rounded-full bg-yellow-300 text-yellow-900 text-[10px] font-bold flex items-center justify-center flex-shrink-0 mt-0.5">{i + 1}</span>
+                    {s}
+                  </li>
+                ))}
+              </ol>
+            </div>
+          </div>
+        )}
+
+        {isOnboarding && isPending && (
+          <div className="bg-yellow-50 border border-yellow-200 rounded-2xl px-4 py-4 flex items-start gap-3">
+            <span className="text-2xl flex-shrink-0">📱</span>
+            <div>
+              <p className="text-yellow-800 text-sm font-bold mb-1">C'est parti ! Voici ce que tu dois faire</p>
+              <ol className="space-y-1">
+                {["Ouvre WhatsApp", "Poste l'image avec la légende sur ton statut", "Attends que tes contacts voient le statut", "Reviens ici dans 24h et soumet le screenshot avec le nombre de vues"].map((s, i) => (
+                  <li key={i} className="flex items-start gap-2 text-yellow-700 text-xs">
+                    <span className="w-4 h-4 rounded-full bg-yellow-300 text-yellow-900 text-[10px] font-bold flex items-center justify-center flex-shrink-0 mt-0.5">{i + 1}</span>
+                    {s}
+                  </li>
+                ))}
+              </ol>
+            </div>
+          </div>
+        )}
 
         {/* ── Fiche campagne ── */}
         {t && (

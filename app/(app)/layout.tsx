@@ -9,12 +9,13 @@ import { AppProvider, useApp } from "@/contexts/AppContext";
 import Sidebar from "@/components/Sidebar";
 import NotificationBell from "@/components/NotificationBell";
 import PwaInstallBanner from "@/components/PwaInstallBanner";
+import OnboardingModal from "@/components/OnboardingModal";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
 
 function Inner({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router   = useRouter();
-  const { sidebarOpen, closeSidebar, openSidebar, user } = useApp();
+  const { sidebarOpen, closeSidebar, openSidebar, user, onboardingDone, onboardingMissionId, markOnboardingDone } = useApp();
 
   useEffect(() => {
     if (!tokenStore.get()) router.push("/login");
@@ -55,6 +56,13 @@ function Inner({ children }: { children: React.ReactNode }) {
         <PwaInstallBanner />
         {children}
       </main>
+
+      {!onboardingDone && (
+        <OnboardingModal
+          onboardingMissionId={onboardingMissionId}
+          onDone={markOnboardingDone}
+        />
+      )}
 
       {/* Bottom nav */}
       <nav className="fixed bottom-0 left-0 right-0 z-30 bg-white border-t border-gray-100 h-16 flex">

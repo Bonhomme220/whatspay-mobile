@@ -48,6 +48,7 @@ export default function SoumettreProuvePage() {
   // Soumission
   const [submitting, setSub]    = useState(false);
   const [error, setError]       = useState<string | null>(null);
+  const [showOnboardingSuccess, setShowOnboardingSuccess] = useState(false);
 
   const load = useCallback(() => {
     setLoading(true);
@@ -111,6 +112,10 @@ export default function SoumettreProuvePage() {
       );
       const data = await res.json();
       if (data.success) {
+        if (isOnboarding) {
+          setShowOnboardingSuccess(true);
+          return;
+        }
         router.push(`/campagnes/${id}?submitted=1`);
       } else {
         setError(data.message ?? "Une erreur est survenue.");
@@ -324,6 +329,52 @@ export default function SoumettreProuvePage() {
         </div>
 
       </div>
+
+      {/* ── Modal succès onboarding ── */}
+      {showOnboardingSuccess && (
+        <div className="fixed inset-0 z-50 flex items-end" style={{ background: "rgba(0,0,0,0.7)" }}>
+          <div className="w-full bg-white rounded-t-3xl overflow-hidden">
+            <div className="bg-green-600 px-5 py-6 flex flex-col items-center text-center">
+              <div className="w-16 h-16 rounded-full bg-white bg-opacity-20 flex items-center justify-center mb-3">
+                <svg className="w-9 h-9 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <h3 className="text-white text-xl font-bold">Bravo, mission complétée !</h3>
+              <p className="text-green-100 text-sm mt-1">Tu as terminé ton onboarding WhatsPAY</p>
+            </div>
+            <div className="px-6 py-6">
+              <div className="bg-yellow-50 border border-yellow-200 rounded-2xl px-4 py-4 mb-5">
+                <p className="text-yellow-800 text-sm font-bold mb-1">⭐ C'était ta mission de bienvenue</p>
+                <p className="text-yellow-700 text-xs leading-relaxed">
+                  Cette mission n'est pas rémunérée — c'était pour que tu découvres comment ça marche.
+                  Les prochaines missions seront payantes !
+                </p>
+              </div>
+              <div className="space-y-2 mb-6">
+                {[
+                  "Active les notifications pour ne rater aucune mission",
+                  "Reste connecté — les missions arrivent automatiquement",
+                  "Plus tu partages, plus tu gagnes",
+                ].map((tip) => (
+                  <div key={tip} className="flex items-start gap-2">
+                    <svg className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <p className="text-gray-600 text-xs">{tip}</p>
+                  </div>
+                ))}
+              </div>
+              <button
+                onClick={() => router.push("/dashboard")}
+                className="w-full py-4 bg-green-600 text-white font-semibold rounded-2xl text-sm shadow-lg"
+              >
+                Compris, j'attends mes missions !
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Modal règles + confirmation ── */}
       {showRules && (
