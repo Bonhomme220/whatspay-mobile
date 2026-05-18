@@ -65,8 +65,9 @@ export default function MissionDetailPage() {
   const { id }  = useParams<{ id: string }>();
   const [mission, setMission] = useState<Mission | null>(null);
   const [loading, setLoading]   = useState(true);
-  const [copied, setCopied]     = useState(false);
+  const [copied, setCopied]       = useState(false);
   const [accepting, setAccepting] = useState(false);
+  const [downloading, setDownloading] = useState(false);
 
   const load = useCallback(() => {
     api.get<Mission>(`/missions/${id}`)
@@ -84,6 +85,36 @@ export default function MissionDetailPage() {
       load();
     } catch {}
     setAccepting(false);
+  }
+
+  async function handleDownload(url: string, filename: string) {
+    setDownloading(true);
+    try {
+      const res  = await fetch(url);
+      const blob = await res.blob();
+      const file = new File([blob], filename, { type: blob.type });
+
+      // iOS Safari : Share API avec fichier → "Enregistrer l'image"
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({ files: [file], title: filename });
+        return;
+      }
+
+      // Android / autres : téléchargement direct via blob URL
+      const objUrl = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = objUrl;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(objUrl);
+    } catch {
+      // Fallback : ouvre dans un nouvel onglet
+      window.open(url, "_blank");
+    } finally {
+      setDownloading(false);
+    }
   }
 
   function copyLink() {
@@ -368,16 +399,25 @@ export default function MissionDetailPage() {
                 </svg>
                 Aperçu
               </a>
-              <a
-                href={t.files}
-                download
-                className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-green-600 text-white text-xs font-semibold"
+              <button
+                type="button"
+                disabled={downloading}
+                onClick={() => {
+                  const ext = t.files!.split("?")[0].split(".").pop() ?? "jpg";
+                  const name = `${(t.name ?? "media").replace(/\s+/g, "_")}.${ext}`;
+                  handleDownload(t.files!, name);
+                }}
+                className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-green-600 text-white text-xs font-semibold disabled:opacity-60"
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                </svg>
-                Télécharger
-              </a>
+                {downloading ? (
+                  <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                  </svg>
+                )}
+                {downloading ? "Chargement…" : "Télécharger"}
+              </button>
             </div>
           </div>
         )}
