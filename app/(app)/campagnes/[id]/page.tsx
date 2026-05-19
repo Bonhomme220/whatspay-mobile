@@ -8,16 +8,21 @@ import { api } from "@/lib/api";
 // ── Types ──────────────────────────────────────────────────────────────────────
 interface Task {
   id: string; name: string; description: string;
-  startdate: string; enddate: string; type: string;
+  startdate: string; enddate: string; type: string; campaign_type: string;
   files: string | null; legend: string | null; url: string | null;
   client_name: string; categories: { id: string; name: string }[];
   media_type: string | null; is_onboarding: boolean;
+}
+interface TrackingStats {
+  total_clicks: number; unique_clicks: number;
+  conversions: number; conversion_rate: number;
 }
 interface Mission {
   id: string; status: string; expected_gain: number; gain: number;
   assignment_date: string; response_date: string | null;
   submission_date: string | null; tracking_url: string | null;
   reason_title: string | null; reason_description: string | null;
+  tracking_stats: TrackingStats | null;
   task: Task | null;
 }
 
@@ -281,6 +286,31 @@ export default function MissionDetailPage() {
                   </li>
                 ))}
               </ol>
+            </div>
+          </div>
+        )}
+
+        {/* ── Stats conversion (campagnes conversion uniquement, après acceptation) ── */}
+        {t?.campaign_type === "conversion" && !isAssigned && mission.tracking_stats && (
+          <div className="bg-white rounded-2xl shadow-sm p-4">
+            <p className="text-gray-500 text-[10px] font-bold uppercase tracking-widest mb-3 flex items-center gap-1.5">
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+              </svg>
+              Vos statistiques de conversion
+            </p>
+            <div className="grid grid-cols-4 gap-2">
+              {[
+                { label: "Clics totaux",  value: mission.tracking_stats.total_clicks,    color: "text-blue-700",  bg: "bg-blue-50" },
+                { label: "Clics uniques", value: mission.tracking_stats.unique_clicks,   color: "text-indigo-700", bg: "bg-indigo-50" },
+                { label: "Conversions",   value: mission.tracking_stats.conversions,     color: "text-green-700", bg: "bg-green-50" },
+                { label: "Taux",          value: `${mission.tracking_stats.conversion_rate}%`, color: "text-orange-700", bg: "bg-orange-50" },
+              ].map((s) => (
+                <div key={s.label} className={`rounded-xl ${s.bg} p-2.5 text-center`}>
+                  <p className={`font-bold text-base ${s.color}`}>{s.value}</p>
+                  <p className="text-gray-500 text-[9px] mt-0.5 leading-tight">{s.label}</p>
+                </div>
+              ))}
             </div>
           </div>
         )}
