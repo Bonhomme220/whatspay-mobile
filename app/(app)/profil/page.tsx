@@ -145,39 +145,37 @@ export default function ProfilPage() {
 
         {/* ── Performance ── */}
         {(profile.acceptance_rate !== null || profile.completion_rate !== null || profile.total_clics > 0) && (() => {
-          const ar = profile.acceptance_rate ?? 0;
-          const cr = profile.completion_rate ?? 0;
-          const hasRates = profile.acceptance_rate !== null || profile.completion_rate !== null;
-          const fiabilite = hasRates ? Math.round(cr * 0.6 + ar * 0.4) : null;
+          const arRaw = profile.acceptance_rate;
+          const crRaw = profile.completion_rate;
+          const ar = arRaw !== null ? Number(arRaw) : null;
+          const cr = crRaw !== null ? Number(crRaw) : null;
+          const hasRates = ar !== null || cr !== null;
+          const arDisplay = ar !== null ? `${Number(ar.toFixed(1))}%` : "—";
+          const crDisplay = cr !== null ? `${Number(cr.toFixed(1))}%` : "—";
+          const fiabilite = hasRates ? Number((((cr ?? 0) * 0.6) + ((ar ?? 0) * 0.4)).toFixed(1)) : null;
           const fiabColor = fiabilite === null ? "text-gray-400" : fiabilite >= 70 ? "text-green-600" : fiabilite >= 40 ? "text-yellow-500" : "text-red-500";
           return (
             <div className="bg-white rounded-2xl shadow-sm p-4">
               <p className="text-gray-500 text-[10px] font-bold uppercase tracking-widest mb-3">Performance</p>
               <div className="grid grid-cols-2 gap-3">
-                {profile.acceptance_rate !== null && (
-                  <StatCard
-                    label="Taux d'acceptation"
-                    value={`${profile.acceptance_rate}%`}
-                    color={ar >= 70 ? "text-green-600" : ar >= 40 ? "text-yellow-500" : "text-red-500"}
-                    sub="soumissions validées"
-                  />
-                )}
-                {profile.completion_rate !== null && (
-                  <StatCard
-                    label="Taux de complétion"
-                    value={`${profile.completion_rate}%`}
-                    color={cr >= 70 ? "text-green-600" : cr >= 40 ? "text-yellow-500" : "text-red-500"}
-                    sub="missions menées à bout"
-                  />
-                )}
-                {fiabilite !== null && (
-                  <StatCard
-                    label="Score de fiabilité"
-                    value={`${fiabilite}/100`}
-                    color={fiabColor}
-                    sub="complétion + acceptation"
-                  />
-                )}
+                <StatCard
+                  label="Taux d'acceptation"
+                  value={ar !== null ? arDisplay : "—"}
+                  color={ar !== null ? (ar >= 70 ? "text-green-600" : ar >= 40 ? "text-yellow-500" : "text-red-500") : "text-gray-400"}
+                  sub="soumissions validées"
+                />
+                <StatCard
+                  label="Taux de complétion"
+                  value={cr !== null ? crDisplay : "—"}
+                  color={cr !== null ? (cr >= 70 ? "text-green-600" : cr >= 40 ? "text-yellow-500" : "text-red-500") : "text-gray-400"}
+                  sub="missions menées à bout"
+                />
+                <StatCard
+                  label="Score de fiabilité"
+                  value={fiabilite !== null ? `${fiabilite}/100` : "—"}
+                  color={fiabColor}
+                  sub="complétion×0.6 + acceptation×0.4"
+                />
                 {profile.total_clics > 0 && (
                   <StatCard
                     label="Clics générés"
