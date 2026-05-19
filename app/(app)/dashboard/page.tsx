@@ -148,12 +148,12 @@ export default function DashboardPage() {
         <div className="mt-4">
           <div className="flex justify-between text-green-100 text-xs mb-1.5">
             <span>Taux de complétion</span>
-            <span className="font-semibold text-white">{stats.completion}%</span>
+            <span className="font-semibold text-white">{stats.completion != null ? `${Number(stats.completion).toFixed(1)}%` : '—'}</span>
           </div>
           <div className="bg-green-500 rounded-full h-2">
             <div
               className="bg-white rounded-full h-2 transition-all"
-              style={{ width: `${stats.completion}%` }}
+              style={{ width: `${stats.completion != null ? Number(stats.completion).toFixed(1) : 0}%` }}
             />
           </div>
         </div>
@@ -168,7 +168,7 @@ export default function DashboardPage() {
           <StatCard icon={<IcoClock />}  value={stats.expired}     label="EXPIRÉES"   color="text-orange-500" />
           <StatCard icon={<IcoX />}      value={stats.rejected}    label="REJETÉES"   color="text-red-500" />
           <StatCard icon={<IcoCoin />}   value={`${(earnings.total_gain ?? 0).toLocaleString("fr-FR")} F`} label="GAINS" color="text-orange-400" />
-          <StatCard icon={<IcoBar />}    value={`${stats.completion}%`} label="COMPLÉTION" color="text-green-600" />
+          <StatCard icon={<IcoBar />}    value={stats.completion != null ? `${Number(stats.completion).toFixed(1)}%` : '—'} label="COMPLÉTION" color="text-green-600" />
         </div>
       </div>
 
