@@ -53,14 +53,6 @@ export default function DashboardPage() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [faqIndex, setFaqIndex]  = useState(0);
   const [loading, setLoading]    = useState(true);
-  const [showWaBanner, setShowWaBanner] = useState(() =>
-    typeof localStorage !== "undefined" ? localStorage.getItem("wp_wa_channel_joined") !== "1" : false
-  );
-
-  function dismissWaBanner() {
-    localStorage.setItem("wp_wa_channel_joined", "1");
-    setShowWaBanner(false);
-  }
 
   useEffect(() => {
     api.get<DashboardData>("/dashboard")
@@ -101,43 +93,6 @@ export default function DashboardPage() {
   return (
     <div className="bg-gray-50 min-h-screen">
 
-      {/* ── Bannière chaîne WhatsApp ── */}
-      {showWaBanner && (
-        <div className="mx-4 mt-4 rounded-2xl p-4 text-white" style={{ background: "linear-gradient(135deg,#25d366,#128c7e)" }}>
-          <div className="flex items-center gap-3 mb-3">
-            <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: "rgba(255,255,255,0.2)" }}>
-              <svg className="w-5 h-5 text-white" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z" />
-                <path d="M12 0C5.373 0 0 5.373 0 12c0 2.122.554 4.112 1.522 5.843L.044 23.428a.75.75 0 00.919.953l5.82-1.527A11.945 11.945 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.75a9.713 9.713 0 01-4.953-1.355l-.355-.211-3.684.967.982-3.594-.232-.371A9.718 9.718 0 012.25 12C2.25 6.615 6.615 2.25 12 2.25S21.75 6.615 21.75 12 17.385 21.75 12 21.75z" />
-              </svg>
-            </div>
-            <div>
-              <p className="font-bold text-sm leading-tight">Rejoignez notre chaîne WhatsApp officielle !</p>
-              <p className="text-xs mt-0.5" style={{ opacity: 0.9 }}>Actualités, campagnes et annonces en temps réel.</p>
-            </div>
-          </div>
-          <div className="flex gap-2">
-            <a
-              href="https://whatsapp.com/channel/0029VbDB5VyISTkL0OHcht2n"
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={dismissWaBanner}
-              className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl font-bold text-xs"
-              style={{ background: "#fff", color: "#128c7e" }}
-            >
-              Rejoindre
-            </a>
-            <button
-              onClick={dismissWaBanner}
-              className="flex-1 py-2 rounded-xl text-xs font-semibold border"
-              style={{ background: "rgba(255,255,255,0.15)", borderColor: "rgba(255,255,255,0.4)", color: "#fff" }}
-            >
-              J'y suis déjà
-            </button>
-          </div>
-        </div>
-      )}
-
       {/* ── Hero ── */}
       <div className="bg-green-600 px-5 pt-5 pb-14">
         <p className="text-green-100 text-sm">Bienvenue 🔥</p>
@@ -171,6 +126,32 @@ export default function DashboardPage() {
           <StatCard icon={<IcoBar />}    value={stats.completion != null ? `${Number(stats.completion).toFixed(1)}%` : '—'} label="COMPLÉTION" color="text-green-600" />
         </div>
       </div>
+
+      {/* ── Chaîne WhatsApp ── */}
+      <a
+        href="https://whatsapp.com/channel/0029VbDB5VyISTkL0OHcht2n"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="mx-4 mt-4 flex items-center gap-3 rounded-2xl px-4 py-3 text-white"
+        style={{ background: "linear-gradient(135deg,#25d366,#128c7e)" }}
+      >
+        <div className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: "rgba(255,255,255,0.2)" }}>
+          <svg className="w-5 h-5 text-white" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z" />
+            <path d="M12 0C5.373 0 0 5.373 0 12c0 2.122.554 4.112 1.522 5.843L.044 23.428a.75.75 0 00.919.953l5.82-1.527A11.945 11.945 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.75a9.713 9.713 0 01-4.953-1.355l-.355-.211-3.684.967.982-3.594-.232-.371A9.718 9.718 0 012.25 12C2.25 6.615 6.615 2.25 12 2.25S21.75 6.615 21.75 12 17.385 21.75 12 21.75z" />
+          </svg>
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="font-bold text-sm leading-tight">Chaîne WhatsApp officielle</p>
+          <p className="text-xs mt-0.5" style={{ opacity: 0.85 }}>Actualités, campagnes et annonces en temps réel</p>
+        </div>
+        <div className="flex-shrink-0 flex items-center gap-1 bg-white rounded-full px-3 py-1.5" style={{ color: "#128c7e" }}>
+          <span className="text-xs font-bold">Rejoindre</span>
+          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+          </svg>
+        </div>
+      </a>
 
       {/* ── Actions Rapides ── */}
       <div className="mx-4 mt-4 bg-white rounded-2xl shadow-sm p-4">
