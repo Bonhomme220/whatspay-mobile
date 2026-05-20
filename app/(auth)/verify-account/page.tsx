@@ -9,10 +9,27 @@ function VerifyAccountForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const [email, setEmail]   = useState(searchParams.get("email") ?? "");
-  const [code, setCode]     = useState("");
+  const [email, setEmail]     = useState(searchParams.get("email") ?? "");
+  const [code, setCode]       = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError]   = useState("");
+  const [resending, setResending] = useState(false);
+  const [error, setError]     = useState("");
+  const [resendMsg, setResendMsg] = useState("");
+
+  async function handleResend() {
+    if (!email) return;
+    setResendMsg("");
+    setError("");
+    setResending(true);
+    try {
+      await api.post("/auth/resend-verification", { email });
+      setResendMsg("Un nouveau code a été envoyé à votre adresse mail.");
+    } catch (err: any) {
+      setError(err?.message ?? "Impossible de renvoyer le code.");
+    } finally {
+      setResending(false);
+    }
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -64,6 +81,12 @@ function VerifyAccountForm() {
           </div>
         )}
 
+        {resendMsg && (
+          <div className="mb-4 rounded-lg border border-green-200 bg-green-50 px-4 py-3">
+            <p className="text-green-700 text-sm">{resendMsg}</p>
+          </div>
+        )}
+
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-gray-700 text-sm font-medium mb-1.5">Adresse mail</label>
@@ -110,11 +133,24 @@ function VerifyAccountForm() {
           </button>
         </form>
 
-        <p className="text-center text-sm mt-5 text-gray-500">
-          <button onClick={() => router.push("/login")} className="font-medium" style={{ color: "#1ba24b" }}>
-            ← Retour à la connexion
-          </button>
-        </p>
+        <div className="mt-5 text-center space-y-3">
+          <p className="text-gray-500 text-sm">
+            Vous n&apos;avez pas reçu le code ?{" "}
+            <button
+              onClick={handleResend}
+              disabled={resending}
+              className="font-medium disabled:opacity-50"
+              style={{ color: "#1ba24b" }}
+            >
+              {resending ? "Envoi…" : "Renvoyer le code"}
+            </button>
+          </p>
+          <p className="text-sm">
+            <button onClick={() => router.push("/login")} className="font-medium" style={{ color: "#1ba24b" }}>
+              ← Retour à la connexion
+            </button>
+          </p>
+        </div>
       </div>
     </div>
   );

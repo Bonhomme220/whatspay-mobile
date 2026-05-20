@@ -27,6 +27,10 @@ export default function LoginPage() {
         router.push(`/reactivation?email=${encodeURIComponent(email)}`);
         return;
       }
+      if (err?.message === "Compte non vérifié. Vérifiez votre email.") {
+        router.push(`/verify-account?email=${encodeURIComponent(email)}`);
+        return;
+      }
       setError(err?.message ?? "Identifiants incorrects.");
     } finally {
       setLoading(false);
