@@ -83,8 +83,12 @@ export default function CampagnesPage() {
     try {
       await api.post("/missions/" + id + "/accept", {});
       router.push(`/campagnes/${id}`);
-    } catch {}
-    setAccepting(null);
+    } catch {
+      alert("Impossible d'accepter la mission. Elle a peut-être déjà expiré.");
+      load();
+    } finally {
+      setAccepting(null);
+    }
   }
 
   const counts = data

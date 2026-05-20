@@ -87,9 +87,12 @@ export default function MissionDetailPage() {
     setAccepting(true);
     try {
       await api.post(`/missions/${id}/accept`, {});
+    } catch {
+      alert("Impossible d'accepter la mission. Elle a peut-être déjà expiré. Veuillez rafraîchir.");
+    } finally {
       load();
-    } catch {}
-    setAccepting(false);
+      setAccepting(false);
+    }
   }
 
   async function handleDownload(url: string, filename: string) {
