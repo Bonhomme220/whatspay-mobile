@@ -361,8 +361,23 @@ export default function MissionDetailPage() {
           </div>
         )}
 
+        {/* ── Contenu verrouillé (avant acceptation) ── */}
+        {isAssigned && (
+          <div className="bg-white rounded-2xl shadow-sm p-4 flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0">
+              <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+              </svg>
+            </div>
+            <div>
+              <p className="text-gray-700 text-sm font-semibold">Contenu disponible après acceptation</p>
+              <p className="text-gray-400 text-xs mt-0.5">Le média et la légende à diffuser seront révélés une fois la mission acceptée.</p>
+            </div>
+          </div>
+        )}
+
         {/* ── Lien de partage ── */}
-        {(mission.tracking_url || t?.url) && (
+        {!isAssigned && (mission.tracking_url || t?.url) && (
           <div className="bg-white rounded-2xl shadow-sm p-4">
             <p className="text-gray-500 text-[10px] font-bold uppercase tracking-widest mb-2">Instructions</p>
             {t?.legend && (
@@ -398,7 +413,7 @@ export default function MissionDetailPage() {
         )}
 
         {/* ── Média à diffuser ── */}
-        {t?.files && (
+        {!isAssigned && t?.files && (
           <div className="bg-white rounded-2xl shadow-sm p-4">
             <p className="text-gray-500 text-[10px] font-bold uppercase tracking-widest mb-3 flex items-center gap-1.5">
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
