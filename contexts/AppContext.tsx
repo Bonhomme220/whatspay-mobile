@@ -121,7 +121,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }
 
   function dismissNudgeModal() {
-    if (nudgeModal?.dismissible) setNudgeModal(null);
+    // Toujours effacer — session-only.
+    // Le modal revient au prochain chargement si l'API le retourne encore.
+    // On ne bloque jamais l'accès à l'app dans la session courante.
+    setNudgeModal(null);
   }
 
   function dismissNudgeBanner(id: string) {
