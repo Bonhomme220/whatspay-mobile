@@ -103,22 +103,28 @@ export default function NudgeModal({ nudge, onDismiss }: Props) {
             {nudge.message}
           </p>
 
-          {/* CTA */}
-          {nudge.cta ? (
+          {/* CTA principal */}
+          {nudge.cta && (
             <button
               onClick={handleCta}
               className={`w-full py-4 text-white font-semibold rounded-2xl text-sm shadow-md transition-colors ${s.btn}`}
             >
               {nudge.cta.label}
             </button>
-          ) : nudge.dismissible ? (
-            <button
-              onClick={onDismiss}
-              className="w-full py-4 bg-gray-100 text-gray-600 font-semibold rounded-2xl text-sm"
-            >
-              J'ai compris
-            </button>
-          ) : null}
+          )}
+
+          {/* Bouton de sortie — toujours présent pour ne jamais bloquer l'app.
+              Pour les modals non-dismissibles, le message réapparaîtra à la session suivante. */}
+          <button
+            onClick={onDismiss}
+            className={`w-full py-3 text-sm font-medium rounded-2xl mt-2 ${
+              nudge.dismissible
+                ? "bg-gray-100 text-gray-600"
+                : "text-gray-400 bg-transparent"
+            }`}
+          >
+            {nudge.dismissible ? "J'ai compris" : "Continuer quand même"}
+          </button>
         </div>
       </div>
     </div>
