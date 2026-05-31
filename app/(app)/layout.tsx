@@ -10,12 +10,17 @@ import Sidebar from "@/components/Sidebar";
 import NotificationBell from "@/components/NotificationBell";
 import PwaInstallBanner from "@/components/PwaInstallBanner";
 import OnboardingModal from "@/components/OnboardingModal";
+import NudgeModal from "@/components/NudgeModal";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
 
 function Inner({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router   = useRouter();
-  const { sidebarOpen, closeSidebar, openSidebar, user, onboardingDone, onboardingMissionId, markOnboardingDone } = useApp();
+  const {
+    sidebarOpen, closeSidebar, openSidebar, user,
+    onboardingDone, onboardingMissionId, markOnboardingDone,
+    nudgeModal, dismissNudgeModal,
+  } = useApp();
 
   useEffect(() => {
     if (!tokenStore.get()) router.push("/login");
@@ -62,6 +67,11 @@ function Inner({ children }: { children: React.ReactNode }) {
           onboardingMissionId={onboardingMissionId}
           onDone={markOnboardingDone}
         />
+      )}
+
+      {/* Nudge modal — affiché uniquement si onboarding terminé pour ne pas superposer */}
+      {onboardingDone && nudgeModal && (
+        <NudgeModal nudge={nudgeModal} onDismiss={dismissNudgeModal} />
       )}
 
       {/* Bottom nav */}

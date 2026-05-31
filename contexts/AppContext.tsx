@@ -3,6 +3,30 @@
 import { createContext, useContext, useState, useEffect } from "react";
 import { tokenStore, userStore, api, type StoredUser } from "@/lib/api";
 
+// ── Nudge types ────────────────────────────────────────────────────────────────
+
+export interface NudgeCta {
+  label: string;
+  screen: string;
+  params?: Record<string, string>;
+}
+
+export interface Nudge {
+  id: string;
+  type: string;        // critical | onboarding | high | normal | ambassador
+  dismissible: boolean;
+  title: string;
+  message: string;
+  cta: NudgeCta | null;
+}
+
+interface NudgeResponse {
+  modal: Nudge | null;
+  banners: Nudge[];
+}
+
+// ── Context shape ──────────────────────────────────────────────────────────────
+
 interface AppCtx {
   sidebarOpen: boolean;
   openSidebar: () => void;
@@ -11,6 +35,11 @@ interface AppCtx {
   onboardingDone: boolean;
   onboardingMissionId: string | null;
   markOnboardingDone: () => void;
+  // Nudges
+  nudgeModal: Nudge | null;
+  nudgeBanners: Nudge[];
+  dismissNudgeModal: () => void;
+  dismissNudgeBanner: (id: string) => void;
 }
 
 const Ctx = createContext<AppCtx>({
@@ -21,7 +50,13 @@ const Ctx = createContext<AppCtx>({
   onboardingDone: true,
   onboardingMissionId: null,
   markOnboardingDone: () => {},
+  nudgeModal: null,
+  nudgeBanners: [],
+  dismissNudgeModal: () => {},
+  dismissNudgeBanner: () => {},
 });
+
+// ── API response types ─────────────────────────────────────────────────────────
 
 interface ProfileResponse {
   id: string; firstname: string; lastname: string; email: string;
@@ -33,11 +68,18 @@ interface MissionListItem {
   task: { is_onboarding: boolean } | null;
 }
 
+// ── Provider ───────────────────────────────────────────────────────────────────
+
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [user, setUser] = useState<StoredUser | null>(null);
   const [onboardingDone, setOnboardingDone] = useState(true);
   const [onboardingMissionId, setOnboardingMissionId] = useState<string | null>(null);
+
+  // Nudge state
+  const [nudgeModal, setNudgeModal] = useState<Nudge | null>(null);
+  const [nudgeBanners, setNudgeBanners] = useState<Nudge[]>([]);
+  const [dismissedBanners, setDismissedBanners] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (!tokenStore.get()) return;
@@ -64,11 +106,29 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         }
       })
       .catch(() => {});
+
+    // Fetch nudges — indépendant du profil, zéro-bloquant
+    api.get<NudgeResponse>("/nudges")
+      .then((data) => {
+        setNudgeModal(data.modal ?? null);
+        setNudgeBanners(data.banners ?? []);
+      })
+      .catch(() => {}); // nudges ne bloquent jamais l'app
   }, []);
 
   function markOnboardingDone() {
     setOnboardingDone(true);
   }
+
+  function dismissNudgeModal() {
+    if (nudgeModal?.dismissible) setNudgeModal(null);
+  }
+
+  function dismissNudgeBanner(id: string) {
+    setDismissedBanners((prev) => new Set([...prev, id]));
+  }
+
+  const visibleBanners = nudgeBanners.filter((b) => !dismissedBanners.has(b.id));
 
   return (
     <Ctx.Provider value={{
@@ -79,6 +139,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       onboardingDone,
       onboardingMissionId,
       markOnboardingDone,
+      nudgeModal,
+      nudgeBanners: visibleBanners,
+      dismissNudgeModal,
+      dismissNudgeBanner,
     }}>
       {children}
     </Ctx.Provider>
