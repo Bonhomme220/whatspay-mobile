@@ -87,7 +87,7 @@ export default function TicketDetailPage() {
               {m.is_admin && (
                 <p className="text-[10px] font-bold text-green-600 uppercase tracking-wide mb-1">Support WhatsPAY</p>
               )}
-              <p className={`text-sm leading-relaxed ${m.is_admin ? "text-gray-700" : "text-white"}`}>{m.message}</p>
+              <p className={`text-sm leading-relaxed whitespace-pre-line ${m.is_admin ? "text-gray-700" : "text-white"}`}>{m.message}</p>
               <p className={`text-[10px] mt-1.5 ${m.is_admin ? "text-gray-300" : "text-green-200"}`}>{fmtDate(m.created_at)}</p>
             </div>
           </div>
