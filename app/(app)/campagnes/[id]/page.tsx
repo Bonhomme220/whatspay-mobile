@@ -376,39 +376,59 @@ export default function MissionDetailPage() {
           </div>
         )}
 
-        {/* ── Lien de partage ── */}
-        {!isAssigned && (mission.tracking_url || t?.url) && (
+        {/* ── Instructions (légende + lien optionnel) ── */}
+        {!isAssigned && (t?.legend || mission.tracking_url || t?.url) && (
           <div className="bg-white rounded-2xl shadow-sm p-4">
             <p className="text-gray-500 text-[10px] font-bold uppercase tracking-widest mb-2">Instructions</p>
+
+            {/* Légende — toujours affichée si présente, avec ou sans lien */}
             {t?.legend && (
-              <p className="text-gray-600 text-xs leading-relaxed mb-3 break-words">{t.legend}</p>
+              <div className="bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5 mb-3">
+                <p className="text-amber-800 text-[10px] font-bold uppercase tracking-wider mb-1">Légende à copier dans votre statut</p>
+                <p className="text-amber-900 text-sm leading-relaxed break-words">{t.legend}</p>
+                <button
+                  onClick={() => navigator.clipboard?.writeText(t.legend!)}
+                  className="mt-2 flex items-center gap-1 text-[10px] font-semibold text-amber-700"
+                >
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                  </svg>
+                  Copier la légende
+                </button>
+              </div>
             )}
-            <div className="flex items-center gap-2 bg-gray-50 rounded-xl px-3 py-2.5 border border-gray-100">
-              <p className="flex-1 text-green-700 text-xs truncate font-mono">
-                {mission.tracking_url ?? t?.url}
-              </p>
-              <button
-                onClick={copyLink}
-                className="flex items-center gap-1.5 text-xs font-semibold text-green-700 whitespace-nowrap"
-              >
-                {copied ? (
-                  <>
-                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                    </svg>
-                    Copié ✓
-                  </>
-                ) : (
-                  <>
-                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                    </svg>
-                    Copier
-                  </>
-                )}
-              </button>
-            </div>
-            <p className="text-gray-400 text-[10px] mt-2">Copiez ce lien et insérez-le directement dans votre statut WhatsApp.</p>
+
+            {/* Lien de partage — uniquement si présent */}
+            {(mission.tracking_url || t?.url) && (
+              <>
+                <div className="flex items-center gap-2 bg-gray-50 rounded-xl px-3 py-2.5 border border-gray-100">
+                  <p className="flex-1 text-green-700 text-xs truncate font-mono">
+                    {mission.tracking_url ?? t?.url}
+                  </p>
+                  <button
+                    onClick={copyLink}
+                    className="flex items-center gap-1.5 text-xs font-semibold text-green-700 whitespace-nowrap"
+                  >
+                    {copied ? (
+                      <>
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                        Copié ✓
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                        </svg>
+                        Copier
+                      </>
+                    )}
+                  </button>
+                </div>
+                <p className="text-gray-400 text-[10px] mt-2">Copiez ce lien et insérez-le directement dans votre statut WhatsApp.</p>
+              </>
+            )}
           </div>
         )}
 

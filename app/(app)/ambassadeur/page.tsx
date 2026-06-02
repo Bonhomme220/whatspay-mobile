@@ -27,12 +27,36 @@ export default function AmbassadeurPage() {
   const [codeError, setCodeError]     = useState<string | null>(null);
   const [codeSuccess, setCodeSuccess] = useState<string | null>(null);
 
+  const [activating, setActivating]       = useState(false);
+  const [activateError, setActivateError] = useState<string | null>(null);
+
   useEffect(() => {
     api.get<AmbassadorData>("/ambassador")
       .then(setData)
       .catch((e) => { if (e?.status === 401) router.push("/login"); })
       .finally(() => setLoading(false));
   }, [router]);
+
+  async function activateAmbassador() {
+    setActivating(true);
+    setActivateError(null);
+    try {
+      const res = await api.post<{ success: boolean; message: string; ambassador_code: string }>(
+        "/ambassador/activate", {}
+      );
+      if (res.success) {
+        const updated = await api.get<AmbassadorData>("/ambassador");
+        setData(updated);
+      } else {
+        setActivateError(res.message);
+      }
+    } catch (err: unknown) {
+      const e = err as { message?: string };
+      setActivateError(e?.message ?? "Impossible d'activer le programme.");
+    } finally {
+      setActivating(false);
+    }
+  }
 
   async function submitCode(e: React.FormEvent) {
     e.preventDefault();
@@ -187,9 +211,33 @@ export default function AmbassadeurPage() {
             </div>
             <p className={`text-xs leading-relaxed ${data.is_eligible ? "text-green-600" : "text-gray-500"}`}>
               {data.is_eligible
-                ? "Vous avez atteint 1 000 F de retraits validés. Contactez-nous via un ticket pour activer votre statut ambassadeur."
+                ? "Vous avez atteint 1 000 F de retraits validés. Générez votre code dès maintenant pour commencer à parrainer."
                 : "Pour devenir ambassadeur, vous devez avoir effectué au moins 1 000 F de retraits validés sur WhatsPAY."}
             </p>
+
+            {data.is_eligible && (
+              <div className="mt-3">
+                {activateError && (
+                  <p className="text-red-500 text-xs mb-2">{activateError}</p>
+                )}
+                <button
+                  onClick={activateAmbassador}
+                  disabled={activating}
+                  className="w-full py-3 bg-green-600 text-white text-sm font-bold rounded-xl disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {activating ? (
+                    <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <>
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+                      </svg>
+                      Générer mon code ambassadeur
+                    </>
+                  )}
+                </button>
+              </div>
+            )}
           </div>
         )}
 
