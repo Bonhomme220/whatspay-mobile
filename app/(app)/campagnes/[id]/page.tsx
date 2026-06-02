@@ -70,7 +70,8 @@ export default function MissionDetailPage() {
   const { id }  = useParams<{ id: string }>();
   const [mission, setMission] = useState<Mission | null>(null);
   const [loading, setLoading]   = useState(true);
-  const [copied, setCopied]       = useState(false);
+  const [copied, setCopied]             = useState(false);
+  const [legendCopied, setLegendCopied] = useState(false);
   const [accepting, setAccepting] = useState(false);
   const [downloading, setDownloading] = useState(false);
 
@@ -387,13 +388,29 @@ export default function MissionDetailPage() {
                 <p className="text-amber-800 text-[10px] font-bold uppercase tracking-wider mb-1">Légende à copier dans votre statut</p>
                 <p className="text-amber-900 text-sm leading-relaxed break-words">{t.legend}</p>
                 <button
-                  onClick={() => navigator.clipboard?.writeText(t.legend!)}
+                  onClick={() => {
+                    navigator.clipboard.writeText(t.legend!).then(() => {
+                      setLegendCopied(true);
+                      setTimeout(() => setLegendCopied(false), 2000);
+                    }).catch(() => {});
+                  }}
                   className="mt-2 flex items-center gap-1 text-[10px] font-semibold text-amber-700"
                 >
-                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                  </svg>
-                  Copier la légende
+                  {legendCopied ? (
+                    <>
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      Copié ✓
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                      </svg>
+                      Copier la légende
+                    </>
+                  )}
                 </button>
               </div>
             )}
