@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { api, auth } from "@/lib/api";
 import { useApp } from "@/contexts/AppContext";
@@ -51,6 +51,14 @@ function initials(p: Profile) {
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 export default function ProfilPage() {
+  return (
+    <Suspense fallback={null}>
+      <ProfilPageInner />
+    </Suspense>
+  );
+}
+
+function ProfilPageInner() {
   const router       = useRouter();
   const searchParams = useSearchParams();
   const { clearProfileNeedsReview } = useApp();
