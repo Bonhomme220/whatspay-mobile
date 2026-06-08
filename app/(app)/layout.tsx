@@ -11,6 +11,7 @@ import NotificationBell from "@/components/NotificationBell";
 import PwaInstallBanner from "@/components/PwaInstallBanner";
 import OnboardingModal from "@/components/OnboardingModal";
 import NudgeModal from "@/components/NudgeModal";
+import ProfileReviewBanner from "@/components/ProfileReviewBanner";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
 
 function Inner({ children }: { children: React.ReactNode }) {
@@ -19,6 +20,7 @@ function Inner({ children }: { children: React.ReactNode }) {
   const {
     sidebarOpen, closeSidebar, openSidebar, user,
     onboardingDone, onboardingMissionId, markOnboardingDone,
+    profileNeedsReview,
     nudgeModal, dismissNudgeModal,
   } = useApp();
 
@@ -58,6 +60,7 @@ function Inner({ children }: { children: React.ReactNode }) {
 
       {/* pt-14 = header height, pb-16 = bottom nav height */}
       <main className="pt-14 pb-16">
+        {profileNeedsReview && <ProfileReviewBanner />}
         <PwaInstallBanner />
         {children}
       </main>

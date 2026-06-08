@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { api, auth } from "@/lib/api";
+import { useApp } from "@/contexts/AppContext";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 interface Category { id: string; name: string; }
@@ -36,6 +37,7 @@ interface Profile {
   ambassador_stat: AmbassadorStat | null;
   created_at: string;
   deletion_request: DeletionRequest | null;
+  profile_needs_review: boolean;
 }
 
 function fmt(n: number) { return n.toLocaleString("fr-FR"); }
@@ -49,7 +51,9 @@ function initials(p: Profile) {
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 export default function ProfilPage() {
-  const router = useRouter();
+  const router       = useRouter();
+  const searchParams = useSearchParams();
+  const { clearProfileNeedsReview } = useApp();
 
   const [profile, setProfile]   = useState<Profile | null>(null);
   const [loading, setLoading]   = useState(true);
@@ -66,6 +70,13 @@ export default function ProfilPage() {
   }, [router]);
 
   useEffect(() => { load(); }, [load]);
+
+  // Ouvrir automatiquement l'EditSheet si ?review=1 (depuis le bandeau de migration)
+  useEffect(() => {
+    if (searchParams.get("review") === "1" && profile && !loading) {
+      setEditing(true);
+    }
+  }, [searchParams, profile, loading]);
 
   async function handleLogout() {
     await auth.logout();
@@ -142,6 +153,36 @@ export default function ProfilPage() {
       </div>
 
       <div className="mx-4 -mt-6 space-y-4 pb-10">
+
+        {/* ── Bandeau révision profil (migration référentiel) ── */}
+        {profile.profile_needs_review && (
+          <div className="bg-orange-50 border border-orange-200 rounded-2xl p-4">
+            <div className="flex items-start gap-3">
+              <div className="w-9 h-9 rounded-xl bg-orange-100 flex items-center justify-center flex-shrink-0">
+                <svg className="w-5 h-5 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                    d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                </svg>
+              </div>
+              <div className="flex-1">
+                <p className="text-orange-800 font-bold text-sm">Action requise</p>
+                <p className="text-orange-600 text-xs mt-0.5 leading-snug">
+                  Nos catégories et professions ont été enrichies. Sélectionne jusqu'à <strong>4 centres d'intérêt</strong> et confirme ta profession pour recevoir des campagnes adaptées.
+                </p>
+                <button
+                  onClick={() => setEditing(true)}
+                  className="mt-3 inline-flex items-center gap-1.5 bg-orange-500 text-white text-xs font-semibold px-4 py-2 rounded-xl"
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                      d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                  </svg>
+                  Mettre à jour maintenant
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* ── Performance ── */}
         {(profile.acceptance_rate !== null || profile.completion_rate !== null || profile.total_clics > 0) && (() => {
@@ -298,7 +339,12 @@ export default function ProfilPage() {
         <EditSheet
           profile={profile}
           onClose={() => setEditing(false)}
-          onSuccess={() => { setEditing(false); load(); }}
+          onSuccess={() => {
+            setEditing(false);
+            // Si c'était une révision de migration, effacer le flag dans le contexte
+            if (profile.profile_needs_review) clearProfileNeedsReview();
+            load();
+          }}
         />
       )}
 

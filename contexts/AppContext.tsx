@@ -35,6 +35,9 @@ interface AppCtx {
   onboardingDone: boolean;
   onboardingMissionId: string | null;
   markOnboardingDone: () => void;
+  // Révision de profil (migration référentiel)
+  profileNeedsReview: boolean;
+  clearProfileNeedsReview: () => void;
   // Nudges
   nudgeModal: Nudge | null;
   nudgeBanners: Nudge[];
@@ -50,6 +53,8 @@ const Ctx = createContext<AppCtx>({
   onboardingDone: true,
   onboardingMissionId: null,
   markOnboardingDone: () => {},
+  profileNeedsReview: false,
+  clearProfileNeedsReview: () => {},
   nudgeModal: null,
   nudgeBanners: [],
   dismissNudgeModal: () => {},
@@ -61,6 +66,7 @@ const Ctx = createContext<AppCtx>({
 interface ProfileResponse {
   id: string; firstname: string; lastname: string; email: string;
   onboarding_shown_at: string | null;
+  profile_needs_review: boolean;
 }
 
 interface MissionListItem {
@@ -75,6 +81,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<StoredUser | null>(null);
   const [onboardingDone, setOnboardingDone] = useState(true);
   const [onboardingMissionId, setOnboardingMissionId] = useState<string | null>(null);
+  const [profileNeedsReview, setProfileNeedsReview] = useState(false);
 
   // Nudge state
   const [nudgeModal, setNudgeModal] = useState<Nudge | null>(null);
@@ -93,6 +100,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         const u: StoredUser = { id: p.id, firstname: p.firstname, lastname: p.lastname, email: p.email, profil: "DIFFUSEUR" };
         userStore.set(u);
         setUser(u);
+
+        // Flag migration référentiel
+        if (p.profile_needs_review) {
+          setProfileNeedsReview(true);
+        }
 
         if (!p.onboarding_shown_at) {
           setOnboardingDone(false);
@@ -120,6 +132,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setOnboardingDone(true);
   }
 
+  function clearProfileNeedsReview() {
+    setProfileNeedsReview(false);
+  }
+
   function dismissNudgeModal() {
     // Toujours effacer — session-only.
     // Le modal revient au prochain chargement si l'API le retourne encore.
@@ -142,6 +158,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       onboardingDone,
       onboardingMissionId,
       markOnboardingDone,
+      profileNeedsReview,
+      clearProfileNeedsReview,
       nudgeModal,
       nudgeBanners: visibleBanners,
       dismissNudgeModal,
