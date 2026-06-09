@@ -10,7 +10,7 @@ interface Task {
   id: string; name: string; description: string;
   startdate: string; enddate: string; type: string; campaign_type: string;
   files: string | null; legend: string | null; url: string | null;
-  client_name: string; categories: { id: string; name: string }[];
+  client_name: string; category: { id: string; name: string } | null;
   media_type: string | null; is_onboarding: boolean;
 }
 interface TrackingStats {
@@ -342,11 +342,11 @@ export default function MissionDetailPage() {
                   <span className="text-gray-800 text-xs font-medium text-right">{row.value}</span>
                 </div>
               ))}
-              {t.categories[0] && (
+              {t.category && (
                 <div className="flex justify-between items-center border-b border-gray-50 pb-2">
                   <span className="text-gray-500 text-xs">Catégorie</span>
                   <span className="bg-green-50 text-green-700 text-[10px] font-semibold px-2 py-0.5 rounded-full">
-                    {t.categories[0].name}
+                    {t.category.name}
                   </span>
                 </div>
               )}

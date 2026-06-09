@@ -11,7 +11,7 @@ interface Task {
   id: string; name: string; description: string;
   startdate: string; enddate: string; type: string;
   files: string | null; legend: string | null;
-  client_name: string; categories: { id: string; name: string }[];
+  client_name: string; category: { id: string; name: string } | null;
   slots_used: number;
 }
 interface Mission {
@@ -223,8 +223,8 @@ function DispoCard({ mission: m, onAccept, accepting }: {
         <span className="text-green-700 font-bold text-sm whitespace-nowrap">{m.expected_gain} F</span>
       </div>
 
-      {t.categories[0] && (
-        <span className="text-green-600 text-xs font-semibold">{t.categories[0].name}</span>
+      {t.category && (
+        <span className="text-green-600 text-xs font-semibold">{t.category.name}</span>
       )}
 
       <p className="text-gray-500 text-xs mt-2 leading-relaxed line-clamp-2">{t.description}</p>
