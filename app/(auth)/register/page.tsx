@@ -390,12 +390,17 @@ export default function RegisterPage() {
                 />
                 <FieldError msg={fe.password_confirmation} />
               </div>
-              <Input
-                label="Code ambassadeur (optionnel)"
-                value={form.ambassador_code}
-                onChange={(e) => set("ambassador_code", e.target.value.toUpperCase())}
-                placeholder="Ex : ABC12345"
-              />
+              <div>
+                <Input
+                  label="Code ambassadeur (facultatif)"
+                  value={form.ambassador_code}
+                  onChange={(e) => set("ambassador_code", e.target.value.toUpperCase())}
+                  placeholder="Ex : WTP-ABC123"
+                />
+                <p className="text-xs text-gray-500 mt-1.5">
+                  Un ambassadeur WhatsPay vous a-t-il invité ? Entrez son code ici. Sinon, laissez ce champ vide.
+                </p>
+              </div>
             </>
           )}
 
