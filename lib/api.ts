@@ -38,6 +38,13 @@ async function request<T>(method: string, url: string, body?: unknown): Promise<
   });
 
   if (!res.ok) {
+    // ── Token révoqué / compte désactivé → logout automatique ─────────────
+    if (res.status === 401) {
+      tokenStore.clear();
+      if (typeof window !== "undefined") {
+        window.location.href = "/login";
+      }
+    }
     const err = await res.json().catch(() => ({}));
     throw { status: res.status, ...err };
   }
