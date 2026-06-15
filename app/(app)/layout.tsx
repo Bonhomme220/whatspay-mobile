@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { tokenStore } from "@/lib/api";
 import { AppProvider, useApp } from "@/contexts/AppContext";
 import Sidebar from "@/components/Sidebar";
@@ -16,7 +16,6 @@ import { usePushNotifications } from "@/hooks/usePushNotifications";
 
 function Inner({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const router   = useRouter();
   const {
     sidebarOpen, closeSidebar, openSidebar, user,
     onboardingDone, onboardingMissionId, markOnboardingDone,
@@ -27,16 +26,18 @@ function Inner({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     // Vérification initiale du token
     if (!tokenStore.get()) {
-      router.replace("/login");
+      window.location.replace("/login");
       return;
     }
 
     // Écoute l'événement 401 émis par lib/api.ts
     // (token révoqué côté serveur — compte désactivé par admin)
-    const handleUnauthorized = () => router.replace("/login");
+    // window.location.replace est utilisé intentionnellement à la place de router.replace :
+    // router.replace ne s'exécute pas correctement depuis un handler CustomEvent (hors contexte React).
+    const handleUnauthorized = () => window.location.replace("/login");
     window.addEventListener("wp:unauthorized", handleUnauthorized);
     return () => window.removeEventListener("wp:unauthorized", handleUnauthorized);
-  }, [router]);
+  }, []);
 
   usePushNotifications();
 
