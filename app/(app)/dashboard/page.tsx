@@ -60,11 +60,9 @@ export default function DashboardPage() {
   useEffect(() => {
     api.get<DashboardData>("/dashboard")
       .then(setData)
-      .catch((err) => {
-        if (err?.status === 401) router.push("/login");
-      })
+      .catch(() => {}) // 401 géré globalement par wp:unauthorized dans le layout
       .finally(() => setLoading(false));
-  }, [router]);
+  }, []);
 
   if (loading) {
     return (
@@ -73,7 +71,11 @@ export default function DashboardPage() {
       </div>
     );
   }
-  if (!data) return null;
+  if (!data) return (
+    <div className="flex items-center justify-center h-64">
+      <div className="w-8 h-8 border-4 border-green-600 border-t-transparent rounded-full animate-spin" />
+    </div>
+  );
 
   const { user, stats, earnings, recent_assignments, monthly, faqs } = data;
 

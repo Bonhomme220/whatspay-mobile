@@ -34,7 +34,7 @@ export default function TicketsPage() {
     setLoading(true);
     api.get<Ticket[]>("/tickets")
       .then(setTickets)
-      .catch((e) => { if (e?.status === 401) router.push("/login"); })
+      .catch(() => {}) // 401 géré globalement par wp:unauthorized dans le layout
       .finally(() => setLoading(false));
   }, [router]);
 

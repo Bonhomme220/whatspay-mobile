@@ -42,7 +42,7 @@ async function request<T>(method: string, url: string, body?: unknown): Promise<
     if (res.status === 401) {
       tokenStore.clear();
       if (typeof window !== "undefined") {
-        window.location.href = "/login";
+        window.dispatchEvent(new CustomEvent("wp:unauthorized"));
       }
     }
     const err = await res.json().catch(() => ({}));

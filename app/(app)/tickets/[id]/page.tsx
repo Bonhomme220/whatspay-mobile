@@ -28,7 +28,7 @@ export default function TicketDetailPage() {
   const load = useCallback(() => {
     api.get<TicketDetail>(`/tickets/${id}`)
       .then((t) => { setTicket(t); setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: "smooth" }), 100); })
-      .catch((e) => { if (e?.status === 401) router.push("/login"); })
+      .catch(() => {}) // 401 géré globalement par wp:unauthorized dans le layout
       .finally(() => setLoading(false));
   }, [id, router]);
 

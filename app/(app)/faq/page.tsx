@@ -1,13 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 
 interface FaqItem { id: string; question: string; answer: string; }
 
 export default function FaqPage() {
-  const router = useRouter();
   const [faqs, setFaqs]     = useState<FaqItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen]     = useState<string | null>(null);
@@ -15,9 +13,9 @@ export default function FaqPage() {
   useEffect(() => {
     api.get<FaqItem[]>("/faq")
       .then(setFaqs)
-      .catch((e) => { if (e?.status === 401) router.push("/login"); })
+      .catch(() => {}) // 401 géré globalement par wp:unauthorized dans le layout
       .finally(() => setLoading(false));
-  }, [router]);
+  }, []);
 
   return (
     <div className="min-h-screen bg-gray-50">

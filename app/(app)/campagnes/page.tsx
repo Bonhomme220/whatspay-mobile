@@ -72,9 +72,9 @@ export default function CampagnesPage() {
     setLoading(true);
     api.get<MissionsData>("/missions")
       .then(setData)
-      .catch((e) => { if (e?.status === 401) router.push("/login"); })
+      .catch(() => {}) // 401 géré globalement par wp:unauthorized dans le layout
       .finally(() => setLoading(false));
-  }, [router]);
+  }, []);
 
   useEffect(() => { load(); }, [load]);
 

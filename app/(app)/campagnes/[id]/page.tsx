@@ -78,7 +78,7 @@ export default function MissionDetailPage() {
   const load = useCallback(() => {
     api.get<Mission>(`/missions/${id}`)
       .then(setMission)
-      .catch((e) => { if (e?.status === 401) router.push("/login"); })
+      .catch(() => {}) // 401 géré globalement par wp:unauthorized dans le layout
       .finally(() => setLoading(false));
   }, [id, router]);
 

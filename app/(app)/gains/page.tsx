@@ -52,9 +52,9 @@ export default function GainsPage() {
     if (!quiet) setLoading(true); else setRefreshing(true);
     api.get<GainsData>("/gains")
       .then(setData)
-      .catch((e) => { if (e?.status === 401) router.push("/login"); })
+      .catch(() => {}) // 401 géré globalement par wp:unauthorized dans le layout
       .finally(() => { setLoading(false); setRefreshing(false); });
-  }, [router]);
+  }, []);
 
   useEffect(() => { load(); }, [load]);
 

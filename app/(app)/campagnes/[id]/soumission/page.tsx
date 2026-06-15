@@ -66,7 +66,7 @@ export default function SoumissionPage() {
     setLoading(true);
     api.get<Mission>(`/missions/${id}`)
       .then(setMission)
-      .catch((e) => { if (e?.status === 401) router.push("/login"); })
+      .catch(() => {}) // 401 géré globalement par wp:unauthorized dans le layout
       .finally(() => setLoading(false));
   }, [id, router]);
 

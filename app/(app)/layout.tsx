@@ -25,7 +25,17 @@ function Inner({ children }: { children: React.ReactNode }) {
   } = useApp();
 
   useEffect(() => {
-    if (!tokenStore.get()) router.push("/login");
+    // Vérification initiale du token
+    if (!tokenStore.get()) {
+      router.replace("/login");
+      return;
+    }
+
+    // Écoute l'événement 401 émis par lib/api.ts
+    // (token révoqué côté serveur — compte désactivé par admin)
+    const handleUnauthorized = () => router.replace("/login");
+    window.addEventListener("wp:unauthorized", handleUnauthorized);
+    return () => window.removeEventListener("wp:unauthorized", handleUnauthorized);
   }, [router]);
 
   usePushNotifications();

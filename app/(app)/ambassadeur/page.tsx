@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 
 interface AmbassadorData {
@@ -19,7 +18,6 @@ function fmtDate(d: string) {
 }
 
 export default function AmbassadeurPage() {
-  const router = useRouter();
   const [data, setData]       = useState<AmbassadorData | null>(null);
   const [loading, setLoading] = useState(true);
   const [code, setCode]       = useState("");
@@ -33,9 +31,9 @@ export default function AmbassadeurPage() {
   useEffect(() => {
     api.get<AmbassadorData>("/ambassador")
       .then(setData)
-      .catch((e) => { if (e?.status === 401) router.push("/login"); })
+      .catch(() => {}) // 401 géré globalement par wp:unauthorized dans le layout
       .finally(() => setLoading(false));
-  }, [router]);
+  }, []);
 
   async function activateAmbassador() {
     setActivating(true);

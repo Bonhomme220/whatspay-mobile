@@ -73,7 +73,7 @@ function ProfilPageInner() {
     setLoading(true);
     api.get<Profile>("/profile")
       .then(setProfile)
-      .catch((e) => { if (e?.status === 401) router.push("/login"); })
+      .catch(() => {}) // 401 géré globalement par wp:unauthorized dans le layout
       .finally(() => setLoading(false));
   }, [router]);
 

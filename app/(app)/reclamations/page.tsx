@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { api } from "@/lib/api";
 
@@ -32,16 +31,15 @@ function fmtDate(d: string) {
 }
 
 export default function ReclamationsPage() {
-  const router = useRouter();
   const [complaints, setComplaints] = useState<Complaint[]>([]);
   const [loading, setLoading]       = useState(true);
 
   useEffect(() => {
     api.get<Complaint[]>("/complaints")
       .then(setComplaints)
-      .catch((e) => { if (e?.status === 401) router.push("/login"); })
+      .catch(() => {}) // 401 géré globalement par wp:unauthorized dans le layout
       .finally(() => setLoading(false));
-  }, [router]);
+  }, []);
 
   return (
     <div className="min-h-screen bg-gray-50">
