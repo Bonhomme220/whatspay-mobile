@@ -39,10 +39,19 @@ async function request<T>(method: string, url: string, body?: unknown): Promise<
 
   if (!res.ok) {
     // ── Token révoqué / compte désactivé → logout automatique ─────────────
+    // window.location.replace est utilisé directement (pas d'event custom) :
+    // le redirect depuis un event listener CustomEvent était silencieusement
+    // ignoré dans certains contextes Next.js App Router.
     if (res.status === 401) {
       tokenStore.clear();
       if (typeof window !== "undefined") {
-        window.dispatchEvent(new CustomEvent("wp:unauthorized"));
+        // On lit la réponse d'abord pour pouvoir lire le message éventuel,
+        // mais on redirige dans tous les cas sauf si on est déjà sur /login
+        // (évite les boucles si la page de login elle-même fait un appel 401)
+        const isOnLoginPage = window.location.pathname === "/login";
+        if (!isOnLoginPage) {
+          window.location.replace("/login");
+        }
       }
     }
     const err = await res.json().catch(() => ({}));

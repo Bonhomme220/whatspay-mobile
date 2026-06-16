@@ -24,19 +24,11 @@ function Inner({ children }: { children: React.ReactNode }) {
   } = useApp();
 
   useEffect(() => {
-    // Vérification initiale du token
+    // Vérification initiale : pas de token → login
+    // Les 401 API sont gérés directement dans lib/api.ts → window.location.replace("/login")
     if (!tokenStore.get()) {
       window.location.replace("/login");
-      return;
     }
-
-    // Écoute l'événement 401 émis par lib/api.ts
-    // (token révoqué côté serveur — compte désactivé par admin)
-    // window.location.replace est utilisé intentionnellement à la place de router.replace :
-    // router.replace ne s'exécute pas correctement depuis un handler CustomEvent (hors contexte React).
-    const handleUnauthorized = () => window.location.replace("/login");
-    window.addEventListener("wp:unauthorized", handleUnauthorized);
-    return () => window.removeEventListener("wp:unauthorized", handleUnauthorized);
   }, []);
 
   usePushNotifications();
