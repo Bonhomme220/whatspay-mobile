@@ -88,27 +88,24 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [nudgeBanners, setNudgeBanners] = useState<Nudge[]>([]);
   const [dismissedBanners, setDismissedBanners] = useState<Set<string>>(new Set());
 
-  useEffect(() => {
-    if (!tokenStore.get()) return;
-
-    const stored = userStore.get();
-    if (stored?.firstname) setUser(stored);
-
-    // Fetch profile to check onboarding status
+  // ── Vérification de session (robuste) ─────────────────────────────────────
+  // Appelée au mount ET à chaque retour au premier plan.
+  // Si le compte est désactivé (401), api.ts redirige vers /login directement.
+  const checkSession = () => {
+    if (!tokenStore.get()) {
+      window.location.replace("/login");
+      return;
+    }
     api.get<ProfileResponse>("/profile")
       .then((p) => {
         const u: StoredUser = { id: p.id, firstname: p.firstname, lastname: p.lastname, email: p.email, profil: "DIFFUSEUR" };
         userStore.set(u);
         setUser(u);
 
-        // Flag migration référentiel
-        if (p.profile_needs_review) {
-          setProfileNeedsReview(true);
-        }
+        if (p.profile_needs_review) setProfileNeedsReview(true);
 
         if (!p.onboarding_shown_at) {
           setOnboardingDone(false);
-          // Find the onboarding mission
           api.get<MissionListItem[]>("/missions")
             .then((missions) => {
               const ob = missions.find((m) => m.task?.is_onboarding);
@@ -117,7 +114,27 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             .catch(() => {});
         }
       })
-      .catch(() => {});
+      .catch(() => {
+        // api.ts a déjà géré le 401 avec window.location.replace("/login").
+        // Pour les autres erreurs réseau (5xx, timeout), on ne fait rien.
+      });
+  };
+
+  useEffect(() => {
+    if (!tokenStore.get()) return;
+
+    const stored = userStore.get();
+    if (stored?.firstname) setUser(stored);
+
+    // Vérification au démarrage
+    checkSession();
+
+    // Revérification à chaque retour au premier plan
+    // (couvre le cas : admin désactive pendant que l'app est en arrière-plan)
+    const handleVisibility = () => {
+      if (!document.hidden) checkSession();
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
 
     // Fetch nudges — indépendant du profil, zéro-bloquant
     api.get<NudgeResponse>("/nudges")
@@ -126,6 +143,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         setNudgeBanners(data.banners ?? []);
       })
       .catch(() => {}); // nudges ne bloquent jamais l'app
+
+    return () => document.removeEventListener("visibilitychange", handleVisibility);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   function markOnboardingDone() {
