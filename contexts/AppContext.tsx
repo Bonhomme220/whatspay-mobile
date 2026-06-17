@@ -157,9 +157,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }
 
   function dismissNudgeModal() {
-    // Toujours effacer — session-only.
-    // Le modal revient au prochain chargement si l'API le retourne encore.
-    // On ne bloque jamais l'accès à l'app dans la session courante.
+    if (nudgeModal?.id === 'incident_june_2026') {
+      api.post('/incident/acknowledge', {}).catch(() => {});
+    }
     setNudgeModal(null);
   }
 

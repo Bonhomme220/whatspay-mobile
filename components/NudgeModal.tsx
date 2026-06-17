@@ -25,6 +25,8 @@ function typeStyle(type: string): { bar: string; badge: string; btn: string } {
       return { bar: "bg-green-600", badge: "bg-green-50 text-green-700", btn: "bg-green-600 hover:bg-green-700" };
     case "high":
       return { bar: "bg-orange-500", badge: "bg-orange-50 text-orange-700", btn: "bg-orange-500 hover:bg-orange-600" };
+    case "incident":
+      return { bar: "bg-amber-600", badge: "bg-amber-50 text-amber-700", btn: "bg-amber-600 hover:bg-amber-700" };
     case "ambassador":
       return { bar: "bg-yellow-500", badge: "bg-yellow-50 text-yellow-700", btn: "bg-yellow-500 hover:bg-yellow-600" };
     default:
@@ -37,6 +39,7 @@ function typeLabel(type: string): string {
     case "critical":   return "⚡ Urgent";
     case "onboarding": return "👋 Bienvenue";
     case "high":       return "🔔 Important";
+    case "incident":   return "⚠️ Information importante";
     case "ambassador": return "🤝 Ambassadeur";
     default:           return "ℹ️ Info";
   }
@@ -99,7 +102,7 @@ export default function NudgeModal({ nudge, onDismiss }: Props) {
           </h2>
 
           {/* Message */}
-          <p className="text-gray-600 text-sm leading-relaxed mb-6">
+          <p className="text-gray-600 text-sm leading-relaxed mb-6 whitespace-pre-line">
             {nudge.message}
           </p>
 
