@@ -6,6 +6,7 @@ import Link from "next/link";
 import { api } from "@/lib/api";
 import { useApp } from "@/contexts/AppContext";
 import NudgeBanners from "@/components/NudgeBanners";
+import IncompleteProfileBanner from "@/components/IncompleteProfileBanner";
 import {
   PieChart, Pie, Cell, Tooltip as PieTooltip,
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
@@ -55,7 +56,7 @@ export default function DashboardPage() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [faqIndex, setFaqIndex]  = useState(0);
   const [loading, setLoading]    = useState(true);
-  const { nudgeBanners, dismissNudgeBanner } = useApp();
+  const { nudgeBanners, dismissNudgeBanner, profileIncomplete } = useApp();
 
   useEffect(() => {
     api.get<DashboardData>("/dashboard")
@@ -122,8 +123,11 @@ export default function DashboardPage() {
       {/* ── Nudge banners ── */}
       <NudgeBanners banners={nudgeBanners} onDismiss={dismissNudgeBanner} />
 
+      {/* ── Bannière profil incomplet ── */}
+      {profileIncomplete && <IncompleteProfileBanner />}
+
       {/* ── Stats card overlapping hero ── */}
-      <div className={`mx-4 bg-white rounded-2xl shadow-sm p-4 ${nudgeBanners.length > 0 ? "mt-3" : "-mt-4"}`}>
+      <div className={`mx-4 bg-white rounded-2xl shadow-sm p-4 ${nudgeBanners.length > 0 || profileIncomplete ? "mt-3" : "-mt-4"}`}>
         <h2 className="text-gray-700 font-semibold text-sm mb-3">Vos statistiques</h2>
         <div className="grid grid-cols-2 gap-3">
           <StatCard icon={<IcoSync />}   value={stats.in_progress} label="EN COURS"   color="text-blue-500" />

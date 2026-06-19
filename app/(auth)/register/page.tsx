@@ -10,7 +10,8 @@ interface Ref { id: string; name: string; }
 
 interface FormData {
   firstname: string; lastname: string; email: string; birthdate: string;
-  country_id: string; locality_id: string; phone: string; phonecountry_id: string;
+  country_id: string; locality_id: string; arrondissement_locality_id: string; quartier_locality_id: string;
+  phone: string; phonecountry_id: string;
   vuesmoyen: string; lang_id: string; study_id: string; occupation_id: string;
   categories: string[]; contentTypes: string[];
   password: string; password_confirmation: string;
@@ -19,7 +20,8 @@ interface FormData {
 
 const EMPTY: FormData = {
   firstname: "", lastname: "", email: "", birthdate: "",
-  country_id: "", locality_id: "", phone: "", phonecountry_id: "",
+  country_id: "", locality_id: "", arrondissement_locality_id: "", quartier_locality_id: "",
+  phone: "", phonecountry_id: "",
   vuesmoyen: "", lang_id: "", study_id: "", occupation_id: "",
   categories: [], contentTypes: [],
   password: "", password_confirmation: "",
@@ -82,13 +84,15 @@ export default function RegisterPage() {
   const [showPwd, setShowPwd] = useState(false);
 
   // Référentiels
-  const [countries,     setCountries]     = useState<Ref[]>([]);
-  const [localities,    setLocalities]    = useState<Ref[]>([]);
-  const [categories,    setCategories]    = useState<Ref[]>([]);
-  const [langs,         setLangs]         = useState<Ref[]>([]);
-  const [studies,       setStudies]       = useState<Ref[]>([]);
-  const [contenttypes,  setContenttypes]  = useState<Ref[]>([]);
-  const [occupations,   setOccupations]   = useState<Ref[]>([]);
+  const [countries,        setCountries]        = useState<Ref[]>([]);
+  const [localities,       setLocalities]       = useState<Ref[]>([]);
+  const [arrondissements,  setArrondissements]  = useState<Ref[]>([]);
+  const [quartiers,        setQuartiers]        = useState<Ref[]>([]);
+  const [categories,       setCategories]       = useState<Ref[]>([]);
+  const [langs,            setLangs]            = useState<Ref[]>([]);
+  const [studies,          setStudies]          = useState<Ref[]>([]);
+  const [contenttypes,     setContenttypes]     = useState<Ref[]>([]);
+  const [occupations,      setOccupations]      = useState<Ref[]>([]);
 
   useEffect(() => {
     Promise.all([
@@ -108,14 +112,39 @@ export default function RegisterPage() {
     }).catch(() => {});
   }, []);
 
+  // Cascade pays → localités
   useEffect(() => {
     if (!form.country_id) { setLocalities([]); return; }
     api.get<{ data: Ref[] } | Ref[]>(`/localities/by-country/${form.country_id}`)
       .then((res) => setLocalities(Array.isArray(res) ? res : (res as any).data ?? []))
       .catch(() => setLocalities([]));
     set("locality_id", "");
+    set("arrondissement_locality_id", "");
+    set("quartier_locality_id", "");
     set("phonecountry_id", form.country_id);
+    setArrondissements([]);
+    setQuartiers([]);
   }, [form.country_id]);
+
+  // Cascade localité → arrondissements
+  useEffect(() => {
+    if (!form.locality_id) { setArrondissements([]); setQuartiers([]); return; }
+    api.get<{ data: Ref[] }>(`/localities/${form.locality_id}/arrondissements`)
+      .then((res) => setArrondissements(res.data ?? []))
+      .catch(() => setArrondissements([]));
+    set("arrondissement_locality_id", "");
+    set("quartier_locality_id", "");
+    setQuartiers([]);
+  }, [form.locality_id]);
+
+  // Cascade arrondissement → quartiers
+  useEffect(() => {
+    if (!form.arrondissement_locality_id) { setQuartiers([]); return; }
+    api.get<{ data: Ref[] }>(`/arrondissements/${form.arrondissement_locality_id}/quartiers`)
+      .then((res) => setQuartiers(res.data ?? []))
+      .catch(() => setQuartiers([]));
+    set("quartier_locality_id", "");
+  }, [form.arrondissement_locality_id]);
 
   function set<K extends keyof FormData>(k: K, v: FormData[K]) {
     setForm((f) => ({ ...f, [k]: v }));
@@ -146,9 +175,11 @@ export default function RegisterPage() {
       }
     }
     if (s === 1) {
-      if (!form.country_id)   errs.country_id  = "Pays requis.";
-      if (!form.locality_id)  errs.locality_id = "Ville requise.";
-      if (!form.phone.trim()) errs.phone       = "Téléphone requis.";
+      if (!form.country_id)                   errs.country_id                   = "Pays requis.";
+      if (!form.locality_id)                  errs.locality_id                  = "Ville requise.";
+      if (arrondissements.length > 0 && !form.arrondissement_locality_id) errs.arrondissement_locality_id = "Arrondissement requis.";
+      if (quartiers.length > 0 && !form.quartier_locality_id)           errs.quartier_locality_id       = "Quartier requis.";
+      if (!form.phone.trim())                 errs.phone                        = "Téléphone requis.";
     }
     if (s === 2) {
       if (!form.vuesmoyen || Number(form.vuesmoyen) < 1) errs.vuesmoyen = "Nombre de vues requis (min. 1).";
@@ -184,23 +215,25 @@ export default function RegisterPage() {
     setLoading(true);
     try {
       await api.post("/auth/register", {
-        firstname:            form.firstname,
-        lastname:             form.lastname,
-        email:                form.email,
-        birthdate:            form.birthdate,
-        country_id:           form.country_id,
-        locality_id:          form.locality_id,
-        phone:                form.phone,
-        phonecountry_id:      form.phonecountry_id || form.country_id,
-        vuesmoyen:            Number(form.vuesmoyen),
-        lang_id:              form.lang_id,
-        study_id:             form.study_id,
-        categories:           form.categories,
-        contentTypes:         form.contentTypes,
-        occupation_id:        form.occupation_id || null,
-        password:             form.password,
-        password_confirmation: form.password_confirmation,
-        ambassador_code:      form.ambassador_code || null,
+        firstname:                   form.firstname,
+        lastname:                    form.lastname,
+        email:                       form.email,
+        birthdate:                   form.birthdate,
+        country_id:                  form.country_id,
+        locality_id:                 form.locality_id,
+        arrondissement_locality_id:  form.arrondissement_locality_id,
+        quartier_locality_id:        form.quartier_locality_id,
+        phone:                       form.phone,
+        phonecountry_id:             form.phonecountry_id || form.country_id,
+        vuesmoyen:                   Number(form.vuesmoyen),
+        lang_id:                     form.lang_id,
+        study_id:                    form.study_id,
+        categories:                  form.categories,
+        contentTypes:                form.contentTypes,
+        occupation_id:               form.occupation_id || null,
+        password:                    form.password,
+        password_confirmation:       form.password_confirmation,
+        ambassador_code:             form.ambassador_code || null,
       });
       router.push(`/verify-account?email=${encodeURIComponent(form.email)}`);
     } catch (err: any) {
@@ -265,10 +298,22 @@ export default function RegisterPage() {
                 <option value="">Sélectionnez votre pays</option>
                 {countries.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
               </Select>
+
               <Select label="Ville / Localité" value={form.locality_id} onChange={(e) => { set("locality_id", e.target.value); setFe((f) => ({ ...f, locality_id: "" })); }} disabled={!localities.length} error={fe.locality_id}>
                 <option value="">{localities.length ? "Sélectionnez votre ville" : "Choisissez d'abord un pays"}</option>
                 {localities.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
               </Select>
+
+              <Select label="Arrondissement" value={form.arrondissement_locality_id} onChange={(e) => { set("arrondissement_locality_id", e.target.value); setFe((f) => ({ ...f, arrondissement_locality_id: "" })); }} disabled={!arrondissements.length} error={fe.arrondissement_locality_id}>
+                <option value="">{arrondissements.length ? "Sélectionnez votre arrondissement" : "Choisissez d'abord une ville"}</option>
+                {arrondissements.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
+              </Select>
+
+              <Select label="Quartier" value={form.quartier_locality_id} onChange={(e) => { set("quartier_locality_id", e.target.value); setFe((f) => ({ ...f, quartier_locality_id: "" })); }} disabled={!quartiers.length} error={fe.quartier_locality_id}>
+                <option value="">{quartiers.length ? "Sélectionnez votre quartier" : "Choisissez d'abord un arrondissement"}</option>
+                {quartiers.map((q) => <option key={q.id} value={q.id}>{q.name}</option>)}
+              </Select>
+
               <Input label="Numéro de téléphone" type="tel" value={form.phone} onChange={(e) => { set("phone", e.target.value); setFe((f) => ({ ...f, phone: "" })); }} placeholder="97000000" error={fe.phone} />
             </>
           )}

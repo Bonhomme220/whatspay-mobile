@@ -23,6 +23,8 @@ interface Profile {
   vuesmoyen: number;
   country: Country | null;
   locality: Locality | null;
+  arrondissement: { id: string; name: string } | null;
+  quartier: { id: string; name: string } | null;
   occupation: Occupation | null;
   categories: Category[];
   wallet_balance: number;
@@ -256,6 +258,8 @@ function ProfilPageInner() {
           <InfoRow label="Date de naissance" value={fmtDate(profile.birthdate)} />
           <InfoRow label="Pays" value={profile.country?.name ?? "—"} />
           <InfoRow label="Localité" value={profile.locality?.name ?? "—"} />
+          <InfoRow label="Arrondissement" value={profile.arrondissement?.name ?? "—"} />
+          <InfoRow label="Quartier" value={profile.quartier?.name ?? "—"} />
           <InfoRow label="Profession" value={profile.occupation?.name ?? "—"} />
         </div>
 

@@ -12,6 +12,7 @@ import PwaInstallBanner from "@/components/PwaInstallBanner";
 import OnboardingModal from "@/components/OnboardingModal";
 import NudgeModal from "@/components/NudgeModal";
 import ProfileReviewBanner from "@/components/ProfileReviewBanner";
+import LocationUpdateModal from "@/components/LocationUpdateModal";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
 
 function Inner({ children }: { children: React.ReactNode }) {
@@ -20,6 +21,7 @@ function Inner({ children }: { children: React.ReactNode }) {
     sidebarOpen, closeSidebar, openSidebar, user,
     onboardingDone, onboardingMissionId, markOnboardingDone,
     profileNeedsReview,
+    needsLocationUpdate, userLocalityId, markLocationUpdated,
     nudgeModal, dismissNudgeModal,
   } = useApp();
 
@@ -68,15 +70,23 @@ function Inner({ children }: { children: React.ReactNode }) {
         {children}
       </main>
 
-      {!onboardingDone && (
+      {/* Modal localisation — priorité absolue, non-dismissible */}
+      {needsLocationUpdate && userLocalityId && (
+        <LocationUpdateModal
+          localityId={userLocalityId}
+          onDone={markLocationUpdated}
+        />
+      )}
+
+      {!onboardingDone && !needsLocationUpdate && (
         <OnboardingModal
           onboardingMissionId={onboardingMissionId}
           onDone={markOnboardingDone}
         />
       )}
 
-      {/* Nudge modal — affiché uniquement si onboarding terminé pour ne pas superposer */}
-      {onboardingDone && nudgeModal && (
+      {/* Nudge modal — affiché uniquement si onboarding terminé et localisation à jour */}
+      {onboardingDone && !needsLocationUpdate && nudgeModal && (
         <NudgeModal nudge={nudgeModal} onDismiss={dismissNudgeModal} />
       )}
 

@@ -38,6 +38,12 @@ interface AppCtx {
   // Révision de profil (migration référentiel)
   profileNeedsReview: boolean;
   clearProfileNeedsReview: () => void;
+  // Mise à jour localisation obligatoire
+  needsLocationUpdate: boolean;
+  userLocalityId: string | null;
+  markLocationUpdated: () => void;
+  // Profil incomplet (champs N/A)
+  profileIncomplete: boolean;
   // Nudges
   nudgeModal: Nudge | null;
   nudgeBanners: Nudge[];
@@ -55,6 +61,10 @@ const Ctx = createContext<AppCtx>({
   markOnboardingDone: () => {},
   profileNeedsReview: false,
   clearProfileNeedsReview: () => {},
+  needsLocationUpdate: false,
+  userLocalityId: null,
+  markLocationUpdated: () => {},
+  profileIncomplete: false,
   nudgeModal: null,
   nudgeBanners: [],
   dismissNudgeModal: () => {},
@@ -67,6 +77,12 @@ interface ProfileResponse {
   id: string; firstname: string; lastname: string; email: string;
   onboarding_shown_at: string | null;
   profile_needs_review: boolean;
+  phone: string | null;
+  birthdate: string | null;
+  locality: { id: string; name: string } | null;
+  arrondissement: { id: string; name: string } | null;
+  quartier: { id: string; name: string } | null;
+  occupation: { id: string; name: string } | null;
 }
 
 interface MissionListItem {
@@ -82,6 +98,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [onboardingDone, setOnboardingDone] = useState(true);
   const [onboardingMissionId, setOnboardingMissionId] = useState<string | null>(null);
   const [profileNeedsReview, setProfileNeedsReview] = useState(false);
+  const [needsLocationUpdate, setNeedsLocationUpdate] = useState(false);
+  const [userLocalityId, setUserLocalityId] = useState<string | null>(null);
+  const [profileIncomplete, setProfileIncomplete] = useState(false);
 
   // Nudge state
   const [nudgeModal, setNudgeModal] = useState<Nudge | null>(null);
@@ -103,6 +122,21 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         setUser(u);
 
         if (p.profile_needs_review) setProfileNeedsReview(true);
+
+        // Modal localisation obligatoire si pas d'arrondissement/quartier ET localité connue
+        // (on ne bloque que si la localité a des arrondissements disponibles côté API)
+        if ((!p.arrondissement || !p.quartier) && p.locality?.id) {
+          setNeedsLocationUpdate(true);
+          setUserLocalityId(p.locality.id);
+        } else {
+          setNeedsLocationUpdate(false);
+        }
+
+        // Bannière profil incomplet (champs N/A en base)
+        // arrondissement/quartier comptent comme manquants seulement si la localité existe
+        const locationIncomplete = p.locality && (!p.arrondissement || !p.quartier);
+        const incomplete = !p.phone || !p.birthdate || !p.locality || locationIncomplete || !p.occupation;
+        setProfileIncomplete(!!incomplete);
 
         if (!p.onboarding_shown_at) {
           setOnboardingDone(false);
@@ -156,6 +190,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setProfileNeedsReview(false);
   }
 
+  function markLocationUpdated() {
+    setNeedsLocationUpdate(false);
+  }
+
   function dismissNudgeModal() {
     if (nudgeModal?.id === 'incident_june_2026') {
       api.post('/incident/acknowledge', {}).catch(() => {});
@@ -180,6 +218,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       markOnboardingDone,
       profileNeedsReview,
       clearProfileNeedsReview,
+      needsLocationUpdate,
+      userLocalityId,
+      markLocationUpdated,
+      profileIncomplete,
       nudgeModal,
       nudgeBanners: visibleBanners,
       dismissNudgeModal,
