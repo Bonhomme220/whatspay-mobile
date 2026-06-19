@@ -9,6 +9,7 @@ import { useApp } from "@/contexts/AppContext";
 interface Category { id: string; name: string; }
 interface Country  { id: string; name: string; }
 interface Locality { id: string; name: string; country_id: string; }
+interface Ref { id: string; name: string; }
 interface Occupation { id: string; name: string; }
 interface AmbassadorStat { active_referrals: number; total_referrals: number; }
 interface DeletionRequest { id: string; status: string; reason: string; }
@@ -415,21 +416,25 @@ function EditSheet({ profile, onClose, onSuccess }: {
   onSuccess: () => void;
 }) {
   const [form, setForm] = useState({
-    firstname:     profile.firstname       ?? "",
-    lastname:      profile.lastname        ?? "",
-    phone:         profile.phone           ?? "",
-    birthdate:     profile.birthdate       ?? "",
-    vuesmoyen:     String(profile.vuesmoyen ?? ""),
-    country_id:    profile.country?.id    != null ? String(profile.country.id)    : "",
-    locality_id:   profile.locality?.id   != null ? String(profile.locality.id)   : "",
-    occupation_id: profile.occupation?.id != null ? String(profile.occupation.id) : "",
+    firstname:                   profile.firstname       ?? "",
+    lastname:                    profile.lastname        ?? "",
+    phone:                       profile.phone           ?? "",
+    birthdate:                   profile.birthdate       ?? "",
+    vuesmoyen:                   String(profile.vuesmoyen ?? ""),
+    country_id:                  profile.country?.id    != null ? String(profile.country.id)          : "",
+    locality_id:                 profile.locality?.id   != null ? String(profile.locality.id)         : "",
+    occupation_id:               profile.occupation?.id != null ? String(profile.occupation.id)       : "",
+    arrondissement_locality_id:  profile.arrondissement?.id     != null ? String(profile.arrondissement.id) : "",
+    quartier_locality_id:        profile.quartier?.id           != null ? String(profile.quartier.id)       : "",
   });
   const [selectedCats, setSelectedCats] = useState<string[]>(profile.categories.map((c) => c.id));
 
-  const [countries,    setCountries]   = useState<Country[]>([]);
-  const [localities,   setLocalities]  = useState<Locality[]>([]);
-  const [categories,   setCategories]  = useState<Category[]>([]);
-  const [occupations,  setOccupations] = useState<Occupation[]>([]);
+  const [countries,       setCountries]       = useState<Country[]>([]);
+  const [localities,      setLocalities]      = useState<Locality[]>([]);
+  const [arrondissements, setArrondissements] = useState<Ref[]>([]);
+  const [quartiers,       setQuartiers]       = useState<Ref[]>([]);
+  const [categories,      setCategories]      = useState<Category[]>([]);
+  const [occupations,     setOccupations]     = useState<Occupation[]>([]);
   const [saving, setSaving]     = useState(false);
   const [error, setError]       = useState<string | null>(null);
 
@@ -446,6 +451,22 @@ function EditSheet({ profile, onClose, onSuccess }: {
       .catch(() => {});
   }, [form.country_id]);
 
+  // Arrondissements → reload quand la localité change
+  useEffect(() => {
+    if (!form.locality_id) { setArrondissements([]); return; }
+    api.get<{ data: Ref[] }>(`/localities/${form.locality_id}/arrondissements`)
+      .then((r) => setArrondissements(r.data ?? []))
+      .catch(() => setArrondissements([]));
+  }, [form.locality_id]);
+
+  // Quartiers → reload quand l'arrondissement change
+  useEffect(() => {
+    if (!form.arrondissement_locality_id) { setQuartiers([]); return; }
+    api.get<{ data: Ref[] }>(`/arrondissements/${form.arrondissement_locality_id}/quartiers`)
+      .then((r) => setQuartiers(r.data ?? []))
+      .catch(() => setQuartiers([]));
+  }, [form.arrondissement_locality_id]);
+
   function toggleCat(id: string) {
     setSelectedCats((prev) =>
       prev.includes(id) ? prev.filter((c) => c !== id) : prev.length < 4 ? [...prev, id] : prev
@@ -457,7 +478,13 @@ function EditSheet({ profile, onClose, onSuccess }: {
     setSaving(true);
     setError(null);
     try {
-      await api.put("/profile", { ...form, categories: selectedCats, occupation_id: form.occupation_id || null });
+      await api.put("/profile", {
+        ...form,
+        categories:   selectedCats,
+        occupation_id: form.occupation_id || null,
+        arrondissement_locality_id: form.arrondissement_locality_id || null,
+        quartier_locality_id:       form.quartier_locality_id       || null,
+      });
       onSuccess();
     } catch (err: unknown) {
       const e = err as { message?: string };
@@ -516,11 +543,41 @@ function EditSheet({ profile, onClose, onSuccess }: {
               <label className="text-gray-500 text-xs font-semibold uppercase tracking-wide block mb-1.5">Localité</label>
               <select
                 value={form.locality_id}
-                onChange={(e) => setForm({ ...form, locality_id: e.target.value })}
+                onChange={(e) => setForm({ ...form, locality_id: e.target.value, arrondissement_locality_id: "", quartier_locality_id: "" })}
                 className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-green-300"
               >
                 <option value="">-- Sélectionner --</option>
                 {localities.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
+              </select>
+            </div>
+          )}
+
+          {/* Arrondissement */}
+          {arrondissements.length > 0 && (
+            <div>
+              <label className="text-gray-500 text-xs font-semibold uppercase tracking-wide block mb-1.5">Arrondissement</label>
+              <select
+                value={form.arrondissement_locality_id}
+                onChange={(e) => setForm({ ...form, arrondissement_locality_id: e.target.value, quartier_locality_id: "" })}
+                className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-green-300"
+              >
+                <option value="">-- Sélectionner --</option>
+                {arrondissements.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
+              </select>
+            </div>
+          )}
+
+          {/* Quartier */}
+          {quartiers.length > 0 && (
+            <div>
+              <label className="text-gray-500 text-xs font-semibold uppercase tracking-wide block mb-1.5">Quartier</label>
+              <select
+                value={form.quartier_locality_id}
+                onChange={(e) => setForm({ ...form, quartier_locality_id: e.target.value })}
+                className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-green-300"
+              >
+                <option value="">-- Sélectionner --</option>
+                {quartiers.map((q) => <option key={q.id} value={q.id}>{q.name}</option>)}
               </select>
             </div>
           )}

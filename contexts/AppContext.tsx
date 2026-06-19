@@ -77,6 +77,7 @@ interface ProfileResponse {
   id: string; firstname: string; lastname: string; email: string;
   onboarding_shown_at: string | null;
   profile_needs_review: boolean;
+  location_confirmed_at: string | null;
   phone: string | null;
   birthdate: string | null;
   locality: { id: string; name: string } | null;
@@ -123,9 +124,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
         if (p.profile_needs_review) setProfileNeedsReview(true);
 
-        // Modal localisation obligatoire si pas d'arrondissement/quartier ET localité connue
-        // (on ne bloque que si la localité a des arrondissements disponibles côté API)
-        if ((!p.arrondissement || !p.quartier) && p.locality?.id) {
+        // Modal localisation obligatoire si location_confirmed_at est null ET localité connue
+        // (le modal auto-skip si la localité n'a pas d'arrondissements disponibles)
+        if (!p.location_confirmed_at && p.locality?.id) {
           setNeedsLocationUpdate(true);
           setUserLocalityId(p.locality.id);
         } else {
@@ -134,7 +135,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
         // Bannière profil incomplet (champs N/A en base)
         // arrondissement/quartier comptent comme manquants seulement si la localité existe
-        const locationIncomplete = p.locality && (!p.arrondissement || !p.quartier);
+        const locationIncomplete = p.locality && !p.location_confirmed_at;
         const incomplete = !p.phone || !p.birthdate || !p.locality || locationIncomplete || !p.occupation;
         setProfileIncomplete(!!incomplete);
 
