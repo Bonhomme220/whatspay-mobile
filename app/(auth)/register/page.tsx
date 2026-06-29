@@ -235,7 +235,11 @@ export default function RegisterPage() {
         password_confirmation:       form.password_confirmation,
         ambassador_code:             form.ambassador_code || null,
       });
-      router.push(`/verify-account?email=${encodeURIComponent(form.email)}`);
+      router.push(
+        `/verify-account?email=${encodeURIComponent(form.email)}` +
+        `&phone=${encodeURIComponent(form.phone)}` +
+        `&pcid=${encodeURIComponent(form.phonecountry_id || form.country_id)}`
+      );
     } catch (err: any) {
       setError(err?.message ?? "Une erreur est survenue.");
     } finally {
