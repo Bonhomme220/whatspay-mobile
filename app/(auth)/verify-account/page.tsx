@@ -74,8 +74,8 @@ function VerifyAccountForm() {
     setWhatsappDelay(WHATSAPP_DELAY);
     setShowWhatsapp(false);
     try {
-      await api.post("/auth/resend-verification", { email });
-      setResendMsg("Un nouveau code a été envoyé à votre adresse mail.");
+      const res = await api.post<{ message?: string }>("/auth/resend-verification", { email });
+      setResendMsg(res?.message ?? "Un nouveau code a été envoyé par email et par WhatsApp.");
     } catch (err: any) {
       setError(err?.message ?? "Impossible de renvoyer le code.");
     } finally {
@@ -120,9 +120,9 @@ function VerifyAccountForm() {
           </svg>
         </div>
 
-        <h3 className="text-gray-800 text-lg font-semibold mb-1 text-center">Vérifiez votre email</h3>
+        <h3 className="text-gray-800 text-lg font-semibold mb-1 text-center">Vérifiez votre compte</h3>
         <p className="text-gray-500 text-sm mb-6 text-center leading-relaxed">
-          Un code à 8 caractères a été envoyé à<br />
+          Un code à 8 caractères a été envoyé par <strong className="text-gray-700">email</strong> et <strong className="text-gray-700">WhatsApp</strong> à<br />
           <strong className="text-gray-700">{email}</strong>
         </p>
 
