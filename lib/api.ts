@@ -78,6 +78,11 @@ export const auth = {
     try { await request<void>("POST", `${BASE}/api/auth/logout`); } catch {}
     tokenStore.clear();
   },
+  // Stocke la session à partir d'une réponse contenant un token (login / register sans vérif).
+  applySession: (data: { token: string; profil: string; user: StoredUser }) => {
+    tokenStore.set(data.token);
+    userStore.set({ ...data.user, profil: data.profil });
+  },
 };
 
 // ── API routes protégées ───────────────────────────────────────────────────────

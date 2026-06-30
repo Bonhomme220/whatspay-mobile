@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { api } from "@/lib/api";
+import { api, auth, StoredUser } from "@/lib/api";
 import Image from "next/image";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
@@ -214,27 +214,39 @@ export default function RegisterPage() {
     setError("");
     setLoading(true);
     try {
-      await api.post("/auth/register", {
-        firstname:                   form.firstname,
-        lastname:                    form.lastname,
-        email:                       form.email,
-        birthdate:                   form.birthdate,
-        country_id:                  form.country_id,
-        locality_id:                 form.locality_id,
-        arrondissement_locality_id:  form.arrondissement_locality_id,
-        quartier_locality_id:        form.quartier_locality_id,
-        phone:                       form.phone,
-        phonecountry_id:             form.phonecountry_id || form.country_id,
-        vuesmoyen:                   Number(form.vuesmoyen),
-        lang_id:                     form.lang_id,
-        study_id:                    form.study_id,
-        categories:                  form.categories,
-        contentTypes:                form.contentTypes,
-        occupation_id:               form.occupation_id || null,
-        password:                    form.password,
-        password_confirmation:       form.password_confirmation,
-        ambassador_code:             form.ambassador_code || null,
-      });
+      const res = await api.post<{ token?: string; profil?: string; user?: StoredUser }>(
+        "/auth/register",
+        {
+          firstname:                   form.firstname,
+          lastname:                    form.lastname,
+          email:                       form.email,
+          birthdate:                   form.birthdate,
+          country_id:                  form.country_id,
+          locality_id:                 form.locality_id,
+          arrondissement_locality_id:  form.arrondissement_locality_id,
+          quartier_locality_id:        form.quartier_locality_id,
+          phone:                       form.phone,
+          phonecountry_id:             form.phonecountry_id || form.country_id,
+          vuesmoyen:                   Number(form.vuesmoyen),
+          lang_id:                     form.lang_id,
+          study_id:                    form.study_id,
+          categories:                  form.categories,
+          contentTypes:                form.contentTypes,
+          occupation_id:               form.occupation_id || null,
+          password:                    form.password,
+          password_confirmation:       form.password_confirmation,
+          ambassador_code:             form.ambassador_code || null,
+        }
+      );
+
+      // Vérification bypassée : le backend renvoie un token → connexion directe.
+      if (res?.token && res?.user) {
+        auth.applySession({ token: res.token, profil: res.profil ?? "DIFFUSEUR", user: res.user });
+        router.replace("/dashboard");
+        return;
+      }
+
+      // Vérification requise : ancien parcours (saisie du code).
       router.push(
         `/verify-account?email=${encodeURIComponent(form.email)}` +
         `&phone=${encodeURIComponent(form.phone)}` +
