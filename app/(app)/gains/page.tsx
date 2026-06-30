@@ -11,6 +11,8 @@ interface Transaction {
   amount: number;
   description: string;
   status: string;
+  reference?: string | null;
+  receipt_url?: string | null;
   created_at: string;
 }
 interface PendingWithdrawal {
@@ -38,6 +40,11 @@ function fmt(n: number) { return n.toLocaleString("fr-FR"); }
 function fmtDate(d: string) {
   return new Date(d).toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit", year: "numeric" });
 }
+function fmtDateTime(d: string) {
+  return new Date(d).toLocaleString("fr-FR", {
+    day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit",
+  });
+}
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 export default function GainsPage() {
@@ -47,6 +54,7 @@ export default function GainsPage() {
   const [filter, setFilter]     = useState<Filter>("tous");
   const [refreshing, setRefreshing] = useState(false);
   const [showWithdraw, setShowWithdraw] = useState(false);
+  const [detailTx, setDetailTx] = useState<Transaction | null>(null);
 
   const load = useCallback((quiet = false) => {
     if (!quiet) setLoading(true); else setRefreshing(true);
@@ -187,7 +195,12 @@ export default function GainsPage() {
             {filtered.map((t) => {
               const isCredit = t.type === "Crédit";
               return (
-                <div key={t.id} className="flex items-center gap-3 px-4 py-3.5">
+                <button
+                  key={t.id}
+                  type="button"
+                  onClick={() => setDetailTx(t)}
+                  className="w-full flex items-center gap-3 px-4 py-3.5 text-left active:bg-gray-50 transition-colors"
+                >
                   <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${isCredit ? "bg-green-50" : "bg-red-50"}`}>
                     <svg className={`w-4 h-4 ${isCredit ? "text-green-600" : "text-red-500"}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       {isCredit
@@ -211,12 +224,20 @@ export default function GainsPage() {
                   <span className={`text-sm font-bold whitespace-nowrap ${isCredit ? "text-green-600" : "text-red-500"}`}>
                     {isCredit ? "+" : "-"}{fmt(t.amount)} F
                   </span>
-                </div>
+                  <svg className="w-4 h-4 text-gray-300 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </button>
               );
             })}
           </div>
         )}
       </div>
+
+      {/* ── Feuille de détails d'une transaction ── */}
+      {detailTx && (
+        <TransactionDetailSheet tx={detailTx} onClose={() => setDetailTx(null)} />
+      )}
 
       {/* ── Modal de retrait ── */}
       {showWithdraw && (
@@ -378,6 +399,76 @@ function WithdrawModal({ balance, hasPending, pendingAmount, onClose, onSuccess 
             </button>
           </form>
         )}
+      </div>
+    </div>
+  );
+}
+
+// ── TransactionDetailSheet ───────────────────────────────────────────────────────
+function TransactionDetailSheet({ tx, onClose }: { tx: Transaction; onClose: () => void }) {
+  const isCredit = tx.type === "Crédit";
+  const typeLabel = isCredit ? "Crédit (gain)" : "Débit (retrait)";
+
+  const rows: { label: string; value: React.ReactNode }[] = [
+    { label: "Type", value: typeLabel },
+    { label: "Statut", value: <StatusBadge status={tx.status} /> },
+    { label: "Date & heure", value: fmtDateTime(tx.created_at) },
+  ];
+  if (tx.description) rows.push({ label: "Description", value: tx.description });
+  if (tx.reference)   rows.push({ label: "Référence", value: <span className="font-mono break-all">{tx.reference}</span> });
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end" style={{ background: "rgba(0,0,0,0.5)" }} onClick={onClose}>
+      <div className="w-full bg-white rounded-t-3xl px-5 pt-6 pb-10 max-h-[85vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+        <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-5" />
+
+        {/* En-tête : icône + montant */}
+        <div className="flex flex-col items-center text-center gap-2 mb-5">
+          <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${isCredit ? "bg-green-50" : "bg-red-50"}`}>
+            <svg className={`w-7 h-7 ${isCredit ? "text-green-600" : "text-red-500"}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              {isCredit
+                ? <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+                : <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 10l7-7m0 0l7 7M12 3v18" />
+              }
+            </svg>
+          </div>
+          <p className={`text-3xl font-bold font-mono tracking-tight ${isCredit ? "text-green-600" : "text-red-500"}`}>
+            {isCredit ? "+" : "-"}{fmt(tx.amount)} <span className="text-xl">F</span>
+          </p>
+          <p className="text-gray-400 text-sm">{tx.description || typeLabel}</p>
+        </div>
+
+        {/* Détails */}
+        <div className="bg-gray-50 rounded-2xl divide-y divide-gray-100">
+          {rows.map((r) => (
+            <div key={r.label} className="flex items-start justify-between gap-4 px-4 py-3">
+              <span className="text-gray-400 text-xs font-semibold uppercase tracking-wide flex-shrink-0">{r.label}</span>
+              <span className="text-gray-800 text-sm text-right min-w-0">{r.value}</span>
+            </div>
+          ))}
+        </div>
+
+        {/* Reçu éventuel */}
+        {tx.receipt_url && (
+          <a
+            href={tx.receipt_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-4 w-full flex items-center justify-center gap-2 py-3.5 bg-green-50 text-green-700 font-semibold rounded-2xl text-sm"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            Voir le reçu
+          </a>
+        )}
+
+        <button
+          onClick={onClose}
+          className="mt-3 w-full py-4 bg-gray-100 text-gray-600 font-semibold rounded-2xl text-sm"
+        >
+          Fermer
+        </button>
       </div>
     </div>
   );
