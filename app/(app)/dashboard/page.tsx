@@ -26,7 +26,10 @@ interface DashboardData {
   }>;
   monthly: { months: string[]; completed: number[]; gains: number[] };
   faqs: Array<{ id: string; question: string; answer: string }>;
+  show_whatsapp_channel_modal?: boolean;
 }
+
+const WHATSAPP_CHANNEL_LINK = "https://whatsapp.com/channel/0029VbDB5VyISTkL0OHcht2n";
 
 // ── Status helpers ─────────────────────────────────────────────────────────────
 function statusLabel(s: string) {
@@ -56,14 +59,31 @@ export default function DashboardPage() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [faqIndex, setFaqIndex]  = useState(0);
   const [loading, setLoading]    = useState(true);
+  const [showWaModal, setShowWaModal] = useState(false);
   const { nudgeBanners, dismissNudgeBanner, profileIncomplete } = useApp();
 
   useEffect(() => {
     api.get<DashboardData>("/dashboard")
-      .then(setData)
+      .then((d) => {
+        setData(d);
+        if (d?.show_whatsapp_channel_modal) {
+          setShowWaModal(true);
+          // démarre le compteur de 10 jours (affichage enregistré)
+          api.post("/whatsapp-channel/shown", {}).catch(() => {});
+        }
+      })
       .catch(() => {}) // 401 géré globalement par wp:unauthorized dans le layout
       .finally(() => setLoading(false));
   }, []);
+
+  function markJoined() {
+    api.post("/whatsapp-channel/joined", {}).catch(() => {});
+    setShowWaModal(false);
+  }
+  function joinChannel() {
+    markJoined();
+    window.open(WHATSAPP_CHANNEL_LINK, "_blank");
+  }
 
   if (loading) {
     return (
@@ -373,6 +393,32 @@ export default function DashboardPage() {
           </LineChart>
         </ResponsiveContainer>
       </div>
+
+      {/* ── Modal : rejoindre la chaîne WhatsApp ── */}
+      {showWaModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4" style={{ background: "rgba(0,0,0,0.55)" }}>
+          <div className="w-full max-w-sm bg-white rounded-2xl p-6 relative">
+            <button onClick={() => setShowWaModal(false)} className="absolute top-3 right-3 text-gray-400" aria-label="Fermer">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
+            <div className="flex flex-col items-center text-center">
+              <div className="w-16 h-16 rounded-2xl bg-green-100 flex items-center justify-center mb-4">
+                <svg className="w-9 h-9 text-green-600" fill="currentColor" viewBox="0 0 24 24"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2 22l5.25-1.38a9.9 9.9 0 004.79 1.22h.01c5.46 0 9.9-4.45 9.9-9.91C21.95 6.45 17.5 2 12.04 2zm5.8 14.09c-.24.68-1.4 1.3-1.94 1.34-.5.05-1.13.24-3.8-.8-3.2-1.26-5.24-4.6-5.4-4.82-.16-.22-1.3-1.73-1.3-3.3 0-1.56.82-2.33 1.1-2.65.29-.32.63-.4.84-.4l.6.01c.19 0 .45-.07.7.54.24.6.83 2.06.9 2.2.07.15.12.32.02.53-.1.22-.15.35-.3.53-.14.18-.3.4-.44.53-.14.15-.29.31-.13.6.16.28.72 1.18 1.54 1.92 1.06.94 1.95 1.24 2.23 1.38.28.14.44.12.6-.07.16-.19.7-.81.88-1.09.19-.28.37-.23.63-.14.26.1 1.65.78 1.93.92.28.14.47.21.54.32.07.12.07.68-.17 1.36z"/></svg>
+              </div>
+              <h2 className="text-lg font-bold text-gray-800">Rejoins la chaîne WhatsApp WhatsPAY</h2>
+              <p className="text-sm text-gray-500 mt-2 leading-relaxed">
+                Reçois les annonces, astuces et nouvelles campagnes en avant-première, directement sur WhatsApp.
+              </p>
+              <button onClick={joinChannel} className="mt-5 w-full py-3.5 bg-green-600 text-white font-semibold rounded-2xl text-sm">
+                Rejoindre la chaîne
+              </button>
+              <button onClick={markJoined} className="mt-2 w-full py-3 text-green-700 font-semibold rounded-2xl text-sm">
+                J&apos;y suis déjà
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );
