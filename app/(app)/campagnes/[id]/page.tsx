@@ -99,27 +99,54 @@ export default function MissionDetailPage() {
   async function handleDownload(url: string, filename: string) {
     setDownloading(true);
     try {
-      const res  = await fetch(url);
-      const blob = await res.blob();
-      const file = new File([blob], filename, { type: blob.type });
+      // 1) Tentative directe CDN — avec timeout pour ne pas tourner en boucle
+      //    sur les réseaux instables.
+      let blob: Blob | null = null;
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 20000);
+      try {
+        const res = await fetch(url, { signal: controller.signal });
+        if (res.ok) blob = await res.blob();
+      } catch {
+        // échec/timeout CDN → repli plus bas
+      } finally {
+        clearTimeout(timer);
+      }
 
-      // iOS Safari : Share API avec fichier → "Enregistrer l'image"
-      if (navigator.canShare && navigator.canShare({ files: [file] })) {
-        await navigator.share({ files: [file], title: filename });
+      if (blob) {
+        const file = new File([blob], filename, { type: blob.type });
+        try {
+          // iOS Safari : Share API avec fichier → "Enregistrer l'image"
+          if (navigator.canShare && navigator.canShare({ files: [file] })) {
+            await navigator.share({ files: [file], title: filename });
+          } else {
+            // Android / autres : téléchargement direct via blob URL
+            const objUrl = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = objUrl;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(objUrl);
+          }
+        } catch {
+          // partage annulé/échoué → on ne bascule pas sur le proxy
+        }
         return;
       }
 
-      // Android / autres : téléchargement direct via blob URL
-      const objUrl = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = objUrl;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(objUrl);
-    } catch {
-      // Fallback : ouvre dans un nouvel onglet
+      // 2) Repli : téléchargement natif via proxy signé (streaming serveur,
+      //    reprenable, sans CORS ni contenu mixte).
+      try {
+        const res = await api.post<{ url?: string }>("/media/download-link", { url, name: filename });
+        if (res?.url) {
+          window.location.href = res.url;
+          return;
+        }
+      } catch {
+        // ignore → dernier recours
+      }
       window.open(url, "_blank");
     } finally {
       setDownloading(false);
