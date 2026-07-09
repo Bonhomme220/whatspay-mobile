@@ -23,6 +23,10 @@ export const userStore = {
   set: (u: StoredUser) => localStorage.setItem("wp_user", JSON.stringify(u)),
 };
 
+// Route d'accueil selon le rôle du compte connecté.
+export const homeRouteForProfil = (profil?: string | null): string =>
+  profil === "ANNONCEUR" ? "/annonceur/dashboard" : "/dashboard";
+
 // ── Core request ───────────────────────────────────────────────────────────────
 async function request<T>(method: string, url: string, body?: unknown): Promise<T> {
   const token = tokenStore.get();
@@ -64,11 +68,13 @@ async function request<T>(method: string, url: string, body?: unknown): Promise<
 
 // ── Auth ───────────────────────────────────────────────────────────────────────
 export const auth = {
-  login: async (email: string, password: string, _rememberMe = false, profil = "DIFFUSEUR") => {
+  // profil optionnel : si omis, le backend détecte le rôle du compte (DIFFUSEUR / ANNONCEUR)
+  // et le renvoie dans data.profil → routage par rôle côté client.
+  login: async (email: string, password: string, _rememberMe = false, profil?: string) => {
     const data = await request<{ token: string; profil: string; user: StoredUser }>(
       "POST",
       `${BASE}/api/auth/login`,
-      { email, password, profil }
+      profil ? { email, password, profil } : { email, password }
     );
     tokenStore.set(data.token);
     userStore.set({ ...data.user, profil: data.profil });

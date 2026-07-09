@@ -4,14 +4,14 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import { tokenStore } from "@/lib/api";
+import { tokenStore, userStore, homeRouteForProfil } from "@/lib/api";
 
 export default function Home() {
   const router = useRouter();
 
-  // Si déjà connecté → dashboard directement
+  // Si déjà connecté → espace correspondant au rôle
   useEffect(() => {
-    if (tokenStore.get()) router.replace("/dashboard");
+    if (tokenStore.get()) router.replace(homeRouteForProfil(userStore.get()?.profil));
   }, [router]);
 
   return (

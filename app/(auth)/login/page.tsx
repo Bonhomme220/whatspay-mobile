@@ -2,12 +2,11 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { auth } from "@/lib/api";
+import { auth, homeRouteForProfil } from "@/lib/api";
 import Image from "next/image";
 
 export default function LoginPage() {
   const router = useRouter();
-  const profil = "DIFFUSEUR";
   const [email, setEmail]       = useState("");
   const [password, setPassword] = useState("");
   const [remember, setRemember] = useState(false);
@@ -20,8 +19,8 @@ export default function LoginPage() {
     setError("");
     setLoading(true);
     try {
-      await auth.login(email, password, remember, profil);
-      router.push("/dashboard");
+      const data = await auth.login(email, password, remember);
+      router.push(homeRouteForProfil(data.profil));
     } catch (err: any) {
       if (err?.inactive === true || err?.message === "Compte inactif.") {
         router.push(`/reactivation?email=${encodeURIComponent(email)}`);
