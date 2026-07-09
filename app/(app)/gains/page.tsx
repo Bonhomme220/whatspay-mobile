@@ -159,7 +159,7 @@ export default function GainsPage() {
               <p className="text-amber-800 font-semibold text-sm">Retrait en cours de traitement</p>
               <p className="text-amber-700 text-xs mt-0.5">
                 Votre retrait de <span className="font-semibold">{fmt(data.pending_withdrawal!.amount)} F</span> est en cours.
-                Il sera effectué dans un délai de 1 à 7 jours ouvrés.
+                Le retrait peut prendre plusieurs jours ouvrés.
               </p>
             </div>
           </div>
@@ -283,7 +283,7 @@ function WithdrawModal({ balance, hasPending, pendingAmount, onClose, onSuccess 
             <h2 className="text-gray-800 font-bold text-lg">Retrait en cours</h2>
             <p className="text-gray-500 text-sm leading-relaxed">
               Un retrait de <span className="font-semibold text-gray-700">{pendingAmount ? `${pendingAmount.toLocaleString("fr-FR")} F` : ""}</span> est déjà en cours de traitement.
-              {"\n"}Il sera effectué dans un délai de <span className="font-semibold text-gray-700">1 à 7 jours ouvrés</span>.
+              {"\n"}Le retrait peut prendre <span className="font-semibold text-gray-700">plusieurs jours ouvrés</span>.
             </p>
             <button
               onClick={onClose}
