@@ -9,6 +9,7 @@
   "background_color": "#ffffff",
   "theme_color": "#16a34a",
   "orientation": "portrait",
+  "categories": ["business", "finance"],
   "icons": [
     {
       "src": "/icons/icon-192.png",
@@ -19,6 +20,22 @@
       "src": "/icons/icon-512.png",
       "sizes": "512x512",
       "type": "image/png"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/screenshots/dashboard.jpeg",
+      "sizes": "540x1200",
+      "type": "image/jpeg",
+      "form_factor": "narrow",
+      "label": "Tableau de bord WhatsPAY"
+    },
+    {
+      "src": "/screenshots/login.jpeg",
+      "sizes": "540x1200",
+      "type": "image/jpeg",
+      "form_factor": "narrow",
+      "label": "Connexion WhatsPAY"
     }
   ]
 }
