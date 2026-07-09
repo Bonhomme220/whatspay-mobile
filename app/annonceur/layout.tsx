@@ -18,20 +18,18 @@ const NAV = [
 
 export default function AnnouncerLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const [user, setUser] = useState<StoredUser | null>(null);
+  // Init paresseuse depuis le store (null côté SSR — userStore garde localStorage).
+  const [user] = useState<StoredUser | null>(() => userStore.get());
 
   useEffect(() => {
     if (!tokenStore.get()) {
       window.location.replace("/login");
       return;
     }
-    const stored = userStore.get();
     // Garde de rôle : seul un annonceur accède à cet espace.
-    if (stored && stored.profil !== "ANNONCEUR") {
+    if (userStore.get()?.profil && userStore.get()?.profil !== "ANNONCEUR") {
       window.location.replace("/dashboard");
-      return;
     }
-    setUser(stored);
   }, []);
 
   return (

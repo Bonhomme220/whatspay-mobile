@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { auth, userStore, type StoredUser } from "@/lib/api";
 
 export default function ProfilPage() {
@@ -33,6 +34,10 @@ export default function ProfilPage() {
       </div>
 
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm mt-4 divide-y divide-gray-50">
+        <Link href="/annonceur/briefs" className="flex items-center justify-between px-4 py-3.5">
+          <span className="text-sm text-gray-700">💡 Mes briefs</span>
+          <span className="text-gray-300">→</span>
+        </Link>
         <Row label="Paramètres du compte" hint="Bientôt disponible" />
         <Row label="Sécurité & mot de passe" hint="Bientôt disponible" />
         <Row label="Aide & support" hint="Bientôt disponible" />

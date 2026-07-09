@@ -91,6 +91,33 @@ export const auth = {
   },
 };
 
+// ── Requête multipart (FormData) — upload de fichiers ────────────────────────────
+async function requestForm<T>(path: string, form: FormData): Promise<T> {
+  const token = tokenStore.get();
+  const res = await fetch(`${BASE}/api${path}`, {
+    method: "POST",
+    headers: {
+      Accept: "application/json",
+      // Pas de Content-Type : le navigateur pose le boundary multipart lui-même.
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: form,
+  });
+
+  if (!res.ok) {
+    if (res.status === 401) {
+      tokenStore.clear();
+      if (typeof window !== "undefined" && window.location.pathname !== "/login") {
+        window.location.replace("/login");
+      }
+    }
+    const err = await res.json().catch(() => ({}));
+    throw { status: res.status, ...err };
+  }
+  const text = await res.text();
+  return text ? JSON.parse(text) : ({} as T);
+}
+
 // ── API routes protégées ───────────────────────────────────────────────────────
 export const api = {
   get:    <T>(path: string) => request<T>("GET",    `${BASE}/api${path}`),
@@ -98,4 +125,5 @@ export const api = {
   put:    <T>(path: string, body: unknown) => request<T>("PUT",    `${BASE}/api${path}`, body),
   patch:  <T>(path: string, body: unknown) => request<T>("PATCH",  `${BASE}/api${path}`, body),
   delete: <T>(path: string) => request<T>("DELETE", `${BASE}/api${path}`),
+  postForm: <T>(path: string, form: FormData) => requestForm<T>(path, form),
 };
