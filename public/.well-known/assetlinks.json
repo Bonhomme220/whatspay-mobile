@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "africa.whatspay.app.twa",
+      "sha256_cert_fingerprints": [
+        "47:A2:94:1B:0E:64:44:10:72:24:AF:EF:EE:A0:D1:B2:A5:2D:44:49:99:3B:01:79:F1:18:6C:DA:D0:DE:E7:62"
+      ]
+    }
+  }
+]
