@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
 import { api } from "@/lib/api";
+import CivicBanner from "@/components/CivicBanner";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 interface Complaint {
@@ -13,7 +14,7 @@ interface Complaint {
   admin_note: string | null;
 }
 interface Task {
-  id: string; name: string; is_onboarding: boolean;
+  id: string; name: string; is_onboarding: boolean; is_civic?: boolean;
   startdate: string; enddate: string;
 }
 interface Mission {
@@ -88,7 +89,9 @@ export default function SoumissionPage() {
   const isAccepted  = mission.status === "SUBMISSION_ACCEPTED";
   const isRejected  = mission.status === "SUBMISSION_REJECTED";
   const isOnboarding = task?.is_onboarding ?? false;
-  const canComplain = (isAccepted || isRejected) && !isOnboarding && !mission.complaint;
+  const isCivic      = task?.is_civic ?? false;
+  // Pas de réclamation possible sur une campagne citoyenne
+  const canComplain = (isAccepted || isRejected) && !isOnboarding && !isCivic && !mission.complaint;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -118,6 +121,8 @@ export default function SoumissionPage() {
       </div>
 
       <div className="mx-4 -mt-6 space-y-4 pb-10">
+
+        {isCivic && <CivicBanner />}
 
         {/* ── Statut ── */}
         <div className="bg-white rounded-2xl shadow-sm p-4">

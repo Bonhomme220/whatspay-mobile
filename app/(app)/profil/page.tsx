@@ -22,6 +22,7 @@ interface Profile {
   phone: string | null;
   birthdate: string | null;
   vuesmoyen: number;
+  civic_count?: number;
   country: Country | null;
   locality: Locality | null;
   arrondissement: { id: string; name: string } | null;
@@ -126,11 +127,18 @@ function ProfilPageInner() {
           <div className="min-w-0">
             <p className="text-white font-bold text-lg leading-tight truncate">{profile.firstname} {profile.lastname}</p>
             <p className="text-white/70 text-xs truncate">{profile.email}</p>
-            {profile.is_ambassador && (
-              <span className="inline-flex items-center gap-1 mt-1 text-[10px] font-semibold bg-yellow-400/20 text-yellow-200 px-2 py-0.5 rounded-full border border-yellow-400/30">
-                ★ Ambassadeur
-              </span>
-            )}
+            <div className="flex flex-wrap gap-1 mt-1">
+              {profile.is_ambassador && (
+                <span className="inline-flex items-center gap-1 text-[10px] font-semibold bg-yellow-400/20 text-yellow-200 px-2 py-0.5 rounded-full border border-yellow-400/30">
+                  ★ Ambassadeur
+                </span>
+              )}
+              {(profile.civic_count ?? 0) > 0 && (
+                <span className="inline-flex items-center gap-1 text-[10px] font-semibold bg-white/15 text-white px-2 py-0.5 rounded-full border border-white/25">
+                  🏛️ A soutenu {profile.civic_count} campagne{(profile.civic_count ?? 0) > 1 ? "s" : ""} citoyenne{(profile.civic_count ?? 0) > 1 ? "s" : ""}
+                </span>
+              )}
+            </div>
           </div>
         </div>
 

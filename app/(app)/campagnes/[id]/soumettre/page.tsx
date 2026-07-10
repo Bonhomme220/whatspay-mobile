@@ -3,10 +3,11 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { api, tokenStore } from "@/lib/api";
+import CivicBanner from "@/components/CivicBanner";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 interface Task {
-  id: string; name: string; is_onboarding: boolean;
+  id: string; name: string; is_onboarding: boolean; is_civic?: boolean;
   startdate: string; enddate: string;
   files: string | null;
 }
@@ -72,6 +73,7 @@ export default function SoumettreProuvePage() {
 
   const isResubmission = mission?.status === "SUBMITED";
   const isOnboarding   = mission?.task?.is_onboarding ?? false;
+  const isCivic        = mission?.task?.is_civic ?? false;
 
   function openRulesModal(e: React.FormEvent) {
     e.preventDefault();
@@ -162,8 +164,8 @@ export default function SoumettreProuvePage() {
         {/* Stats */}
         <div className="flex gap-3 mt-4">
           <div className="flex-1 py-2.5 px-3 rounded-xl" style={{ background: "rgba(255,255,255,0.15)" }}>
-            <div className="text-white font-bold text-lg">{mission.expected_gain} F</div>
-            <div className="text-green-100 text-[10px] mt-0.5">Gain prévu</div>
+            <div className="text-white font-bold text-lg">{isCivic ? "Bénévolat" : `${mission.expected_gain} F`}</div>
+            <div className="text-green-100 text-[10px] mt-0.5">{isCivic ? "Non rémunérée" : "Gain prévu"}</div>
           </div>
           {isOnboarding ? (
             <div className="flex-1 py-2.5 px-3 rounded-xl" style={{ background: "rgba(255,255,255,0.15)" }}>
@@ -183,6 +185,8 @@ export default function SoumettreProuvePage() {
 
       {/* ── Contenu ── */}
       <div className="mx-4 -mt-6 space-y-4 pb-10">
+
+        {isCivic && <CivicBanner />}
 
         {/* Avertissement resoumission */}
         {isResubmission && (

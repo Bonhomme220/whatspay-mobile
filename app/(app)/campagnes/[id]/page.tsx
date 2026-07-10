@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
 import { api } from "@/lib/api";
+import CivicBanner from "@/components/CivicBanner";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 interface Task {
@@ -11,7 +12,7 @@ interface Task {
   startdate: string; enddate: string; type: string; campaign_type: string;
   files: string | null; legend: string | null; url: string | null;
   client_name: string; category: { id: string; name: string } | null;
-  media_type: string | null; is_onboarding: boolean;
+  media_type: string | null; is_onboarding: boolean; is_civic?: boolean;
 }
 interface TrackingStats {
   total_clicks: number; unique_clicks: number;
@@ -179,6 +180,7 @@ export default function MissionDetailPage() {
   const isDone       = mission.status === "SUBMISSION_ACCEPTED";
   const isRejected   = mission.status === "SUBMISSION_REJECTED";
   const isOnboarding = t?.is_onboarding ?? false;
+  const isCivic      = t?.is_civic ?? false;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -203,7 +205,7 @@ export default function MissionDetailPage() {
           {[
             { label: "Début", value: fmtDate(t?.startdate ?? null) },
             { label: "Fin",   value: fmtDate(t?.enddate ?? null) },
-            { label: "Gain",  value: `${mission.expected_gain} F` },
+            { label: isCivic ? "Type" : "Gain", value: isCivic ? "Bénévolat" : `${mission.expected_gain} F` },
           ].map((s) => (
             <div key={s.label} className="flex-1 text-center py-2 rounded-xl" style={{ background: "rgba(255,255,255,0.15)" }}>
               <p className="text-white font-bold text-sm">{s.value}</p>
@@ -214,6 +216,8 @@ export default function MissionDetailPage() {
       </div>
 
       <div className={`px-4 -mt-2 space-y-4 ${isAssigned || isPending || isSubmited ? 'pb-28' : 'pb-8'}`}>
+
+        {isCivic && <CivicBanner />}
 
         {/* ── Stepper ── */}
         <div className="bg-white rounded-2xl shadow-sm p-4">
