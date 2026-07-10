@@ -59,26 +59,38 @@ export default function DashboardPage() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [faqIndex, setFaqIndex]  = useState(0);
   const [loading, setLoading]    = useState(true);
-  const [showWaModal, setShowWaModal] = useState(false);
-  const { nudgeBanners, dismissNudgeBanner, profileIncomplete } = useApp();
+  const [wantWaModal, setWantWaModal] = useState(false);  // le backend autorise l'affichage
+  const [waShownMarked, setWaShownMarked] = useState(false);
+  const {
+    nudgeBanners, dismissNudgeBanner, profileIncomplete,
+    onboardingDone, needsLocationUpdate, nudgeModal,
+  } = useApp();
 
   useEffect(() => {
     api.get<DashboardData>("/dashboard")
       .then((d) => {
         setData(d);
-        if (d?.show_whatsapp_channel_modal) {
-          setShowWaModal(true);
-          // démarre le compteur de 10 jours (affichage enregistré)
-          api.post("/whatsapp-channel/shown", {}).catch(() => {});
-        }
+        if (d?.show_whatsapp_channel_modal) setWantWaModal(true);
       })
       .catch(() => {}) // 401 géré globalement par wp:unauthorized dans le layout
       .finally(() => setLoading(false));
   }, []);
 
+  // Le modal « chaîne WhatsApp » ne s'affiche QUE lorsqu'aucun autre modal
+  // (localisation, onboarding, nudge) n'est actif — sinon il se chevauche et
+  // « clignote » à l'inscription. On l'enregistre comme vu seulement à ce moment.
+  const showWaModal = wantWaModal && onboardingDone && !needsLocationUpdate && !nudgeModal;
+
+  useEffect(() => {
+    if (showWaModal && !waShownMarked) {
+      setWaShownMarked(true);
+      api.post("/whatsapp-channel/shown", {}).catch(() => {}); // démarre le compteur 10 j
+    }
+  }, [showWaModal, waShownMarked]);
+
   function markJoined() {
     api.post("/whatsapp-channel/joined", {}).catch(() => {});
-    setShowWaModal(false);
+    setWantWaModal(false);
   }
   function joinChannel() {
     markJoined();
@@ -398,7 +410,7 @@ export default function DashboardPage() {
       {showWaModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center px-4" style={{ background: "rgba(0,0,0,0.55)" }}>
           <div className="w-full max-w-sm bg-white rounded-2xl p-6 relative">
-            <button onClick={() => setShowWaModal(false)} className="absolute top-3 right-3 text-gray-400" aria-label="Fermer">
+            <button onClick={() => setWantWaModal(false)} className="absolute top-3 right-3 text-gray-400" aria-label="Fermer">
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
             </button>
             <div className="flex flex-col items-center text-center">
