@@ -4,6 +4,8 @@ import { useEffect, useState, useCallback, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { api, auth } from "@/lib/api";
 import { useApp } from "@/contexts/AppContext";
+import ShareBadgeModal from "@/components/badge/ShareBadgeModal";
+import type { BadgeData } from "@/components/badge/BadgeCard";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 interface Category { id: string; name: string; }
@@ -22,6 +24,7 @@ interface Profile {
   phone: string | null;
   birthdate: string | null;
   vuesmoyen: number;
+  total_views?: number;
   civic_count?: number;
   country: Country | null;
   locality: Locality | null;
@@ -72,6 +75,7 @@ function ProfilPageInner() {
   const [editing, setEditing]   = useState(false);
   const [showDelete, setShowDelete] = useState(false);
   const [showLogout, setShowLogout] = useState(false);
+  const [showBadge, setShowBadge] = useState(false);
 
   const load = useCallback(() => {
     setLoading(true);
@@ -172,6 +176,33 @@ function ProfilPageInner() {
       </div>
 
       <div className="mx-4 -mt-6 space-y-4 pb-10">
+
+        {/* ── Partager mon badge ── */}
+        <button
+          onClick={() => setShowBadge(true)}
+          className={`w-full flex items-center gap-3 rounded-2xl p-4 text-left shadow-sm border ${
+            profile.is_ambassador
+              ? "bg-gradient-to-br from-yellow-50 to-amber-100 border-amber-200"
+              : "bg-white border-gray-100"
+          }`}
+        >
+          <div className={`w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 ${
+            profile.is_ambassador ? "bg-amber-500/15 text-amber-600" : "bg-green-600/10 text-green-600"
+          }`}>
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+            </svg>
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="font-bold text-gray-900 text-sm">Partager mon badge</p>
+            <p className="text-gray-500 text-xs mt-0.5">
+              {profile.is_ambassador ? "Mon réseau. Mes gains." : "Je fais partie du mouvement."}
+            </p>
+          </div>
+          <svg className="w-5 h-5 text-gray-300 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+          </svg>
+        </button>
 
         {/* ── Bandeau révision profil (migration référentiel) ── */}
         {profile.profile_needs_review && (
@@ -366,6 +397,23 @@ function ProfilPageInner() {
             if (profile.profile_needs_review) clearProfileNeedsReview();
             load();
           }}
+        />
+      )}
+
+      {/* ── Badge partageable ── */}
+      {showBadge && (
+        <ShareBadgeModal
+          data={{
+            firstname: profile.firstname,
+            lastInitial: (profile.lastname?.[0] ?? "").toUpperCase(),
+            year: profile.created_at ? new Date(profile.created_at).getFullYear().toString() : "",
+            totalViews: profile.total_views ?? 0,
+            isAmbassador: profile.is_ambassador,
+            code: profile.ambassador_code,
+            activeReferrals: profile.ambassador_stat?.active_referrals,
+            civicCount: profile.civic_count,
+          } as BadgeData}
+          onClose={() => setShowBadge(false)}
         />
       )}
 
