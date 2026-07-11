@@ -2,9 +2,9 @@
 
 import { useRef, useState } from "react";
 import { toPng } from "html-to-image";
-import BadgeCard, { type BadgeData } from "./BadgeCard";
+import BadgeCard, { type BadgeData, CARD_W, CARD_H } from "./BadgeCard";
 
-const PREVIEW = 320; // largeur d'aperçu en px
+const PREVIEW = 300; // largeur d'aperçu en px
 
 export default function ShareBadgeModal({ data, onClose }: { data: BadgeData; onClose: () => void }) {
   const cardRef = useRef<HTMLDivElement>(null);
@@ -13,7 +13,8 @@ export default function ShareBadgeModal({ data, onClose }: { data: BadgeData; on
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState("");
 
-  const scale = PREVIEW / 1080;
+  const scale = PREVIEW / CARD_W;
+  const previewH = Math.round(PREVIEW * (CARD_H / CARD_W));
 
   function pickPhoto(f: File | null) {
     if (!f) return;
@@ -80,7 +81,7 @@ export default function ShareBadgeModal({ data, onClose }: { data: BadgeData; on
         {/* Aperçu */}
         <div className="flex justify-center mb-4">
           <div
-            style={{ width: PREVIEW, height: PREVIEW, overflow: "hidden", borderRadius: 16 }}
+            style={{ width: PREVIEW, height: previewH, overflow: "hidden", borderRadius: 16 }}
             className="shadow-lg border border-gray-100"
           >
             <div style={{ transform: `scale(${scale})`, transformOrigin: "top left" }}>

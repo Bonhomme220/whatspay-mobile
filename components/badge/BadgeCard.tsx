@@ -16,10 +16,14 @@ export interface BadgeData {
   photoDataUrl?: string | null; // photo choisie (sinon initiales)
 }
 
+// Format portrait 4:5 — idéal Statut WhatsApp
+export const CARD_W = 1080;
+export const CARD_H = 1350;
+
 const fmt = (n: number) => (n || 0).toLocaleString("fr-FR");
 
 /**
- * Carte partageable 1080×1080 (rendue à taille réelle, mise à l'échelle en aperçu).
+ * Carte partageable 1080×1350 (portrait, rendue à taille réelle, mise à l'échelle en aperçu).
  * Or = ambassadeur, Vert = diffuseur. Layout en colonne flex (aucun chevauchement).
  * Styles inline (px) pour un rendu fiable via html-to-image.
  */
@@ -42,19 +46,19 @@ const BadgeCard = forwardRef<HTMLDivElement, { data: BadgeData }>(function Badge
     <div
       ref={ref}
       style={{
-        width: 1080, height: 1080, background: bg, position: "relative",
+        width: CARD_W, height: CARD_H, background: bg, position: "relative",
         fontFamily: "Geist, Arial, sans-serif", color: dark, overflow: "hidden",
         boxSizing: "border-box", display: "flex", flexDirection: "column",
-        padding: "74px 74px 58px",
+        padding: "80px 78px 72px",
       }}
     >
       {/* Barre d'accent haute */}
-      <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 16, background: accent }} />
+      <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 18, background: accent }} />
 
       {/* Header : logo + pill rôle */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/logo.png" alt="" style={{ height: 84, objectFit: "contain" }} crossOrigin="anonymous" />
+        <img src="/logo.png" alt="" style={{ height: 88, objectFit: "contain" }} crossOrigin="anonymous" />
         <div style={{
           border: `2px solid ${accent}`, color: accent, borderRadius: 999,
           padding: "12px 28px", fontSize: 28, fontWeight: 800, letterSpacing: 3,
@@ -64,53 +68,53 @@ const BadgeCard = forwardRef<HTMLDivElement, { data: BadgeData }>(function Badge
       </div>
 
       {/* Avatar */}
-      <div style={{ alignSelf: "center", marginTop: 34 }}>
+      <div style={{ alignSelf: "center", marginTop: 56 }}>
         <div style={{
-          width: 280, height: 280, borderRadius: "50%", background: "#fff",
-          border: `4px solid ${accent}`, overflow: "hidden", display: "flex",
+          width: 340, height: 340, borderRadius: "50%", background: "#fff",
+          border: `5px solid ${accent}`, overflow: "hidden", display: "flex",
           alignItems: "center", justifyContent: "center",
-          boxShadow: "0 20px 50px rgba(0,0,0,0.10)",
+          boxShadow: "0 24px 56px rgba(0,0,0,0.10)",
         }}>
           {data.photoDataUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={data.photoDataUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
           ) : (
-            <span style={{ fontSize: 120, fontWeight: 800, color: accent }}>{initials || "?"}</span>
+            <span style={{ fontSize: 150, fontWeight: 800, color: accent }}>{initials || "?"}</span>
           )}
         </div>
       </div>
 
       {/* Nom */}
-      <div style={{ textAlign: "center", marginTop: 24, fontSize: 64, fontWeight: 800, lineHeight: 1 }}>
+      <div style={{ textAlign: "center", marginTop: 34, fontSize: 74, fontWeight: 800, lineHeight: 1 }}>
         {data.firstname} {data.lastInitial}.
       </div>
 
       {/* Bandeau stats (dashboard) */}
       <div style={{
         display: "flex", alignItems: "center", justifyContent: "space-between",
-        marginTop: 26, background: "#fff", borderRadius: 24, padding: "24px 8px",
-        boxShadow: "0 14px 34px rgba(0,0,0,0.06)",
+        marginTop: 40, background: "#fff", borderRadius: 26, padding: "30px 10px",
+        boxShadow: "0 16px 40px rgba(0,0,0,0.06)",
       }}>
         {stats.map((s, i) => (
           <div key={s.label} style={{ display: "flex", alignItems: "center", flex: 1 }}>
             <div style={{ flex: 1, textAlign: "center" }}>
-              <div style={{ fontSize: 46, fontWeight: 800, lineHeight: 1 }}>{s.value}</div>
-              <div style={{ fontSize: 17, fontWeight: 700, letterSpacing: 1.5, color: "#9a958c", marginTop: 8 }}>{s.label}</div>
+              <div style={{ fontSize: 50, fontWeight: 800, lineHeight: 1 }}>{s.value}</div>
+              <div style={{ fontSize: 19, fontWeight: 700, letterSpacing: 1.5, color: "#9a958c", marginTop: 9 }}>{s.label}</div>
             </div>
-            {i < stats.length - 1 && <div style={{ width: 1, height: 66, background: "#e6e2d8" }} />}
+            {i < stats.length - 1 && <div style={{ width: 1, height: 74, background: "#e6e2d8" }} />}
           </div>
         ))}
       </div>
 
       {/* Bloc ambassadeur : code parrainage seul + filleuls */}
       {gold && data.code && (
-        <div style={{ marginTop: 26, marginLeft: 20, marginRight: 20 }}>
-          <div style={{ background: dark, borderRadius: 22, padding: "22px 28px", textAlign: "center" }}>
-            <div style={{ fontSize: 20, fontWeight: 800, letterSpacing: 3, color: accent }}>MON CODE AMBASSADEUR</div>
-            <div style={{ fontSize: 56, fontWeight: 800, color: "#fff", marginTop: 8, letterSpacing: 2 }}>{data.code}</div>
+        <div style={{ marginTop: 40, marginLeft: 18, marginRight: 18 }}>
+          <div style={{ background: dark, borderRadius: 24, padding: "28px 30px", textAlign: "center" }}>
+            <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: 3, color: accent }}>MON CODE AMBASSADEUR</div>
+            <div style={{ fontSize: 62, fontWeight: 800, color: "#fff", marginTop: 10, letterSpacing: 2 }}>{data.code}</div>
           </div>
           {typeof data.activeReferrals === "number" && data.activeReferrals > 0 && (
-            <div style={{ textAlign: "center", marginTop: 14, fontSize: 26, fontWeight: 700, color: "#5a5a5a" }}>
+            <div style={{ textAlign: "center", marginTop: 18, fontSize: 28, fontWeight: 700, color: "#5a5a5a" }}>
               {data.activeReferrals} filleul{data.activeReferrals > 1 ? "s" : ""} actif{data.activeReferrals > 1 ? "s" : ""}
             </div>
           )}
@@ -119,7 +123,7 @@ const BadgeCard = forwardRef<HTMLDivElement, { data: BadgeData }>(function Badge
 
       {/* Badge citoyen (si participation, diffuseur) */}
       {(data.civicCount ?? 0) > 0 && !gold && (
-        <div style={{ marginTop: 26, textAlign: "center", fontSize: 26, fontWeight: 700, color: "#1BA24B" }}>
+        <div style={{ marginTop: 40, textAlign: "center", fontSize: 30, fontWeight: 700, color: "#1BA24B" }}>
           🏛️ A soutenu {data.civicCount} campagne{(data.civicCount ?? 0) > 1 ? "s" : ""} citoyenne{(data.civicCount ?? 0) > 1 ? "s" : ""}
         </div>
       )}
@@ -129,8 +133,8 @@ const BadgeCard = forwardRef<HTMLDivElement, { data: BadgeData }>(function Badge
 
       {/* Footer : tagline */}
       <div style={{ textAlign: "center" }}>
-        <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: 3, color: accent, marginBottom: 12 }}>◆ WHATSPAY.AFRICA</div>
-        <div style={{ fontSize: 44, fontWeight: 800, lineHeight: 1.15 }}>
+        <div style={{ fontSize: 24, fontWeight: 800, letterSpacing: 3, color: accent, marginBottom: 16 }}>◆ APP.WHATSPAY.AFRICA</div>
+        <div style={{ fontSize: 52, fontWeight: 800, lineHeight: 1.14 }}>
           {gold ? (<>Mon réseau. <span style={{ color: accent }}>Mes gains.</span></>) : (<>Je fais partie du <span style={{ color: accent }}>mouvement.</span></>)}
         </div>
       </div>
