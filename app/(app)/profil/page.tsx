@@ -408,6 +408,10 @@ function ProfilPageInner() {
             lastInitial: (profile.lastname?.[0] ?? "").toUpperCase(),
             year: profile.created_at ? new Date(profile.created_at).getFullYear().toString() : "",
             totalViews: profile.total_views ?? 0,
+            completedCampaigns: profile.completed_campaigns,
+            reliability: (profile.acceptance_rate !== null || profile.completion_rate !== null)
+              ? ((profile.completion_rate ?? 0) * 0.6) + ((profile.acceptance_rate ?? 0) * 0.4)
+              : null,
             isAmbassador: profile.is_ambassador,
             code: profile.ambassador_code,
             activeReferrals: profile.ambassador_stat?.active_referrals,
