@@ -14,6 +14,7 @@ export interface BadgeData {
   activeReferrals?: number;// filleuls actifs (ambassadeur)
   civicCount?: number;     // badge citoyen
   photoDataUrl?: string | null; // photo choisie (sinon initiales)
+  logoDataUrl?: string | null;  // logo préchargé en data URL (fiabilité iOS)
 }
 
 // Format portrait 4:5 — idéal Statut WhatsApp
@@ -58,7 +59,12 @@ const BadgeCard = forwardRef<HTMLDivElement, { data: BadgeData }>(function Badge
       {/* Header : logo + pill rôle */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/logo.png" alt="" style={{ height: 88, objectFit: "contain" }} crossOrigin="anonymous" />
+        <img
+          src={data.logoDataUrl ?? "/logo.png"}
+          alt=""
+          style={{ height: 88, objectFit: "contain" }}
+          {...(data.logoDataUrl ? {} : { crossOrigin: "anonymous" as const })}
+        />
         <div style={{
           border: `2px solid ${accent}`, color: accent, borderRadius: 999,
           padding: "12px 28px", fontSize: 28, fontWeight: 800, letterSpacing: 3,

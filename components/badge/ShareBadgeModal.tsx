@@ -1,17 +1,34 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toPng } from "html-to-image";
 import BadgeCard, { type BadgeData, CARD_W, CARD_H } from "./BadgeCard";
 
 const PREVIEW = 300; // largeur d'aperçu en px
 
+function urlToDataUrl(url: string): Promise<string> {
+  return fetch(url)
+    .then((r) => r.blob())
+    .then((b) => new Promise<string>((res, rej) => {
+      const fr = new FileReader();
+      fr.onload = () => res(fr.result as string);
+      fr.onerror = rej;
+      fr.readAsDataURL(b);
+    }));
+}
+
 export default function ShareBadgeModal({ data, onClose }: { data: BadgeData; onClose: () => void }) {
   const cardRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const [photo, setPhoto] = useState<string | null>(data.photoDataUrl ?? null);
+  const [logo, setLogo] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState("");
+
+  // Précharge le logo en data URL (évite l'image blanche sur iOS Safari)
+  useEffect(() => {
+    urlToDataUrl("/logo.png").then(setLogo).catch(() => setLogo(null));
+  }, []);
 
   const scale = PREVIEW / CARD_W;
   const previewH = Math.round(PREVIEW * (CARD_H / CARD_W));
@@ -24,10 +41,21 @@ export default function ShareBadgeModal({ data, onClose }: { data: BadgeData; on
   }
 
   async function render(): Promise<File | null> {
-    if (!cardRef.current) return null;
-    // Laisse le temps aux images (photo/logo) de se charger avant capture
-    await new Promise((r) => setTimeout(r, 120));
-    const dataUrl = await toPng(cardRef.current, { pixelRatio: 1, cacheBust: true });
+    const node = cardRef.current;
+    if (!node) return null;
+    // Attend le chargement des polices puis des images embarquées (data URLs)
+    try { await (document as Document & { fonts?: { ready: Promise<unknown> } }).fonts?.ready; } catch {}
+    await Promise.all(
+      Array.from(node.querySelectorAll("img")).map((img) =>
+        img.complete ? Promise.resolve() : new Promise((res) => { img.onload = img.onerror = () => res(null); })
+      )
+    );
+    await new Promise((r) => setTimeout(r, 150));
+    // iOS Safari : le 1er passage n'embarque pas toujours les images → on rend 3x
+    let dataUrl = "";
+    for (let i = 0; i < 3; i++) {
+      dataUrl = await toPng(node, { pixelRatio: 1, cacheBust: true });
+    }
     const blob = await (await fetch(dataUrl)).blob();
     return new File([blob], "badge-whatspay.png", { type: "image/png" });
   }
@@ -68,7 +96,7 @@ export default function ShareBadgeModal({ data, onClose }: { data: BadgeData; on
     setTimeout(() => URL.revokeObjectURL(url), 2000);
   }
 
-  const cardData: BadgeData = { ...data, photoDataUrl: photo };
+  const cardData: BadgeData = { ...data, photoDataUrl: photo, logoDataUrl: logo };
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center" onClick={onClose}>
