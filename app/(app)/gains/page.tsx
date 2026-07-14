@@ -13,6 +13,7 @@ interface Transaction {
   status: string;
   reference?: string | null;
   receipt_url?: string | null;
+  rejection_reason?: string | null;
   created_at: string;
 }
 interface PendingWithdrawal {
@@ -447,6 +448,19 @@ function TransactionDetailSheet({ tx, onClose }: { tx: Transaction; onClose: () 
             </div>
           ))}
         </div>
+
+        {/* Motif de rejet (retrait rejeté) */}
+        {tx.status?.toUpperCase() === "FAILED" && tx.rejection_reason && (
+          <div className="mt-4 bg-red-50 border border-red-100 rounded-2xl p-4">
+            <div className="flex items-center gap-2 mb-1.5">
+              <svg className="w-4 h-4 text-red-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+              </svg>
+              <span className="text-red-600 text-xs font-bold uppercase tracking-wide">Motif du rejet</span>
+            </div>
+            <p className="text-red-700 text-sm leading-relaxed">{tx.rejection_reason}</p>
+          </div>
+        )}
 
         {/* Reçu éventuel */}
         {tx.receipt_url && (
