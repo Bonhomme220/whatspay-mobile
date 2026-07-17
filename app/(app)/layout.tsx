@@ -12,6 +12,7 @@ import PwaInstallBanner from "@/components/PwaInstallBanner";
 import OnboardingModal from "@/components/OnboardingModal";
 import NudgeModal from "@/components/NudgeModal";
 import ProfileReviewBanner from "@/components/ProfileReviewBanner";
+import KycBanner from "@/components/KycBanner";
 import LocationUpdateModal from "@/components/LocationUpdateModal";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
 
@@ -70,6 +71,7 @@ function Inner({ children }: { children: React.ReactNode }) {
 
       {/* pt-14 = header height, pb-16 = bottom nav height */}
       <main className="pt-14 pb-16">
+        <KycBanner />
         {profileNeedsReview && <ProfileReviewBanner />}
         <PwaInstallBanner />
         {children}

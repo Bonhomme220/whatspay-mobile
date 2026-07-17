@@ -22,6 +22,11 @@ export default function LoginPage() {
       const data = await auth.login(email, password, remember);
       router.push(homeRouteForProfil(data.profil));
     } catch (err: any) {
+      // Compte désactivé pour KYC non effectué → vers la vérification d'identité
+      if (err?.kyc_required && err?.verify_url) {
+        window.location.href = err.verify_url;
+        return;
+      }
       if (err?.inactive === true || err?.message === "Compte inactif.") {
         router.push(`/reactivation?email=${encodeURIComponent(email)}`);
         return;
