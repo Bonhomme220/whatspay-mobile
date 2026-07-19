@@ -6,6 +6,7 @@ import { api, auth } from "@/lib/api";
 import { useApp } from "@/contexts/AppContext";
 import ShareBadgeModal from "@/components/badge/ShareBadgeModal";
 import type { BadgeData } from "@/components/badge/BadgeCard";
+import KycStatusCard from "@/components/KycStatusCard";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 interface Category { id: string; name: string; }
@@ -176,6 +177,9 @@ function ProfilPageInner() {
       </div>
 
       <div className="mx-4 -mt-6 space-y-4 pb-10">
+
+        {/* ── Vérification d'identité (KYC) ── */}
+        <KycStatusCard />
 
         {/* ── Partager mon badge ── */}
         <button
