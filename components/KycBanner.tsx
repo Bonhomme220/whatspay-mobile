@@ -31,7 +31,7 @@ export default function KycBanner() {
   // Vérification en cours (soumis, en attente de verdict / revue)
   if (state.kyc_status === "submitted") {
     return (
-      <div className="mx-4 mt-3 rounded-2xl bg-amber-50 border border-amber-200 p-3.5 flex items-center gap-3">
+      <div className="mx-4 mt-3 mb-3 rounded-2xl bg-amber-50 border border-amber-200 p-3.5 flex items-center gap-3">
         <div className="w-9 h-9 rounded-xl bg-amber-100 flex items-center justify-center flex-shrink-0 text-lg">⏳</div>
         <div className="min-w-0">
           <p className="font-bold text-amber-800 text-sm">Vérification d'identité en cours</p>
@@ -47,7 +47,7 @@ export default function KycBanner() {
   return (
     <button
       onClick={open}
-      className={`mx-4 mt-3 w-[calc(100%-2rem)] rounded-2xl p-3.5 flex items-center gap-3 text-left border ${
+      className={`mx-4 mt-3 mb-3 w-[calc(100%-2rem)] rounded-2xl p-3.5 flex items-center gap-3 text-left border ${
         rejected ? "bg-red-50 border-red-200" : "bg-green-50 border-green-200"
       }`}
     >
