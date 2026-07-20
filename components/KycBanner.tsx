@@ -5,6 +5,8 @@ import { api } from "@/lib/api";
 
 interface KycState {
   kyc_status: "pending" | "submitted" | "verified" | "rejected";
+  attempt_status: "pending" | "manual_review" | "resubmit" | "approved" | "rejected" | null;
+  reason: string | null;
   required: boolean;
   deadline: string | null;
   attempts_left: number;
@@ -27,6 +29,25 @@ export default function KycBanner() {
   if (!state || !state.required) return null;
 
   const open = () => { if (state.verify_url) window.location.href = state.verify_url; };
+
+  // À corriger : renvoyée à l'utilisateur avec un motif → action requise (resoumission)
+  if (state.attempt_status === "resubmit") {
+    return (
+      <button
+        onClick={open}
+        className="mx-4 mt-3 mb-3 w-[calc(100%-2rem)] rounded-2xl p-3.5 flex items-center gap-3 text-left border bg-amber-50 border-amber-200"
+      >
+        <div className="w-9 h-9 rounded-xl bg-amber-100 flex items-center justify-center flex-shrink-0 text-lg">✏️</div>
+        <div className="min-w-0 flex-1">
+          <p className="font-bold text-amber-800 text-sm">Vérification à corriger</p>
+          <p className="text-amber-700 text-xs mt-0.5">
+            {state.reason ? state.reason : "Une information doit être corrigée."} Corrige et renvoie ta pièce.
+          </p>
+        </div>
+        <span className="text-xs font-bold flex-shrink-0 text-amber-700">Corriger ›</span>
+      </button>
+    );
+  }
 
   // Vérification en cours (soumis, en attente de verdict / revue)
   if (state.kyc_status === "submitted") {
