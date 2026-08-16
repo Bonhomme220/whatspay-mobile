@@ -7,21 +7,26 @@ import Image from "next/image";
 
 export default function ForgotPasswordPage() {
   const router = useRouter();
-  const [email, setEmail]     = useState("");
-  const [loading, setLoading] = useState(false);
-  const [success, setSuccess] = useState(false);
-  const [error, setError]     = useState("");
+  const [phone, setPhone]         = useState("");
+  const [birthdate, setBirthdate] = useState("");
+  const [loading, setLoading]     = useState(false);
+  const [error, setError]         = useState("");
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
     setLoading(true);
     try {
-      await api.post("/auth/forgot-password", { email });
-      setSuccess(true);
+      const res = await api.post<{ token: string; firstname?: string }>(
+        "/auth/reset-verify-identity",
+        { phone, birthdate }
+      );
+      // Identité vérifiée → on passe à l'écran de choix du nouveau mot de passe.
+      const params = new URLSearchParams({ token: res.token });
+      if (res.firstname) params.set("name", res.firstname);
+      router.push(`/reset-password?${params.toString()}`);
     } catch (err: any) {
-      setError(err?.message ?? "Une erreur est survenue. Vérifiez votre adresse email.");
-    } finally {
+      setError(err?.message ?? "Les informations fournies ne correspondent à aucun compte.");
       setLoading(false);
     }
   }
@@ -36,76 +41,60 @@ export default function ForgotPasswordPage() {
           <Image src="/logo.png" alt="WhatsPAY" width={160} height={50} className="object-contain" />
         </div>
 
-        {success ? (
-          <div className="text-center">
-            <div className="w-14 h-14 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-4">
-              <svg className="w-7 h-7 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-              </svg>
-            </div>
-            <h3 className="text-gray-800 text-lg font-semibold mb-2">Email envoyé !</h3>
-            <p className="text-gray-500 text-sm mb-6">
-              Un code de réinitialisation a été envoyé à <strong>{email}</strong>. Consultez votre boîte mail.
-            </p>
-            <button
-              onClick={() => router.push(`/reset-password?email=${encodeURIComponent(email)}`)}
-              className="w-full text-white font-semibold py-3 rounded-lg text-sm"
-              style={{ backgroundColor: "#1ba24b" }}
-            >
-              Entrer le code reçu
-            </button>
-            <button
-              onClick={() => router.push("/login")}
-              className="w-full mt-2 text-sm font-medium py-2"
-              style={{ color: "#1ba24b" }}
-            >
-              Retour à la connexion
-            </button>
+        {error && (
+          <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3">
+            <p className="text-red-600 text-sm">{error}</p>
           </div>
-        ) : (
-          <>
-            {error && (
-              <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3">
-                <p className="text-red-600 text-sm">{error}</p>
-              </div>
-            )}
-
-            <h3 className="text-gray-800 text-lg font-semibold mb-1">Mot de passe oublié</h3>
-            <p className="text-gray-500 text-sm mb-5">
-              Entrez votre adresse email pour recevoir un code de réinitialisation.
-            </p>
-
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className="block text-gray-700 text-sm font-medium mb-1.5">Adresse mail</label>
-                <input
-                  type="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="votre@mail.com"
-                  className="w-full rounded-lg border border-gray-200 px-3 py-3 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:border-green-500 transition"
-                  style={{ backgroundColor: "rgba(43,94,94,0.1)" }}
-                />
-              </div>
-
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full text-white font-semibold py-3 rounded-lg text-sm disabled:opacity-60"
-                style={{ backgroundColor: "#1ba24b" }}
-              >
-                {loading ? "Envoi en cours…" : "Envoyer le code"}
-              </button>
-            </form>
-
-            <p className="text-center text-sm mt-5 text-gray-500">
-              <button onClick={() => router.push("/login")} className="font-medium" style={{ color: "#1ba24b" }}>
-                ← Retour à la connexion
-              </button>
-            </p>
-          </>
         )}
+
+        <h3 className="text-gray-800 text-lg font-semibold mb-1">Mot de passe oublié</h3>
+        <p className="text-gray-500 text-sm mb-5">
+          Confirmez votre identité pour réinitialiser votre mot de passe. Renseignez votre numéro de
+          téléphone et votre date de naissance, exactement comme lors de votre inscription.
+        </p>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-gray-700 text-sm font-medium mb-1.5">Numéro de téléphone</label>
+            <input
+              type="tel"
+              required
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="97000000"
+              className="w-full rounded-lg border border-gray-200 px-3 py-3 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:border-green-500 transition"
+              style={{ backgroundColor: "rgba(43,94,94,0.1)" }}
+            />
+          </div>
+
+          <div>
+            <label className="block text-gray-700 text-sm font-medium mb-1.5">Date de naissance</label>
+            <input
+              type="date"
+              required
+              value={birthdate}
+              onChange={(e) => setBirthdate(e.target.value)}
+              max={new Date().toISOString().split("T")[0]}
+              className="w-full rounded-lg border border-gray-200 px-3 py-3 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:border-green-500 transition"
+              style={{ backgroundColor: "rgba(43,94,94,0.1)" }}
+            />
+          </div>
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full text-white font-semibold py-3 rounded-lg text-sm disabled:opacity-60"
+            style={{ backgroundColor: "#1ba24b" }}
+          >
+            {loading ? "Vérification…" : "Vérifier mon identité"}
+          </button>
+        </form>
+
+        <p className="text-center text-sm mt-5 text-gray-500">
+          <button onClick={() => router.push("/login")} className="font-medium" style={{ color: "#1ba24b" }}>
+            ← Retour à la connexion
+          </button>
+        </p>
       </div>
     </div>
   );

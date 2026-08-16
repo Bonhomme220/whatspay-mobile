@@ -9,33 +9,37 @@ function ResetPasswordForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const [email, setEmail]           = useState(searchParams.get("email") ?? "");
-  const [code, setCode]             = useState("");
-  const [password, setPassword]     = useState("");
+  const token = searchParams.get("token") ?? "";
+  const name  = searchParams.get("name") ?? "";
+
+  const [password, setPassword]         = useState("");
   const [confirmation, setConfirmation] = useState("");
-  const [showPwd, setShowPwd]       = useState(false);
-  const [loading, setLoading]       = useState(false);
-  const [success, setSuccess]       = useState(false);
-  const [error, setError]           = useState("");
+  const [showPwd, setShowPwd]           = useState(false);
+  const [loading, setLoading]           = useState(false);
+  const [success, setSuccess]           = useState(false);
+  const [error, setError]               = useState("");
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
+    if (!token) {
+      setError("Session de réinitialisation expirée. Recommencez.");
+      return;
+    }
     if (password !== confirmation) {
       setError("Les mots de passe ne correspondent pas.");
       return;
     }
     setLoading(true);
     try {
-      await api.post("/auth/reset-password", {
-        email,
-        code,
+      await api.post("/auth/reset-with-identity", {
+        token,
         password,
         password_confirmation: confirmation,
       });
       setSuccess(true);
     } catch (err: any) {
-      setError(err?.message ?? "Code invalide ou expiré.");
+      setError(err?.message ?? "Session de réinitialisation invalide ou expirée.");
     } finally {
       setLoading(false);
     }
@@ -70,6 +74,20 @@ function ResetPasswordForm() {
               Se connecter
             </button>
           </div>
+        ) : !token ? (
+          <div className="text-center">
+            <h3 className="text-gray-800 text-lg font-semibold mb-2">Lien invalide</h3>
+            <p className="text-gray-500 text-sm mb-6">
+              Cette page doit être ouverte après la vérification de votre identité.
+            </p>
+            <button
+              onClick={() => router.push("/forgot-password")}
+              className="w-full text-white font-semibold py-3 rounded-lg text-sm"
+              style={{ backgroundColor: "#1ba24b" }}
+            >
+              Recommencer
+            </button>
+          </div>
         ) : (
           <>
             {error && (
@@ -78,38 +96,14 @@ function ResetPasswordForm() {
               </div>
             )}
 
-            <h3 className="text-gray-800 text-lg font-semibold mb-1">Nouveau mot de passe</h3>
+            <h3 className="text-gray-800 text-lg font-semibold mb-1">
+              {name ? `Bonjour ${name} 👋` : "Nouveau mot de passe"}
+            </h3>
             <p className="text-gray-500 text-sm mb-5">
-              Entrez le code reçu par email et choisissez un nouveau mot de passe.
+              Identité vérifiée. Choisissez votre nouveau mot de passe.
             </p>
 
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className="block text-gray-700 text-sm font-medium mb-1.5">Adresse mail</label>
-                <input
-                  type="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="votre@mail.com"
-                  className="w-full rounded-lg border border-gray-200 px-3 py-3 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:border-green-500 transition"
-                  style={{ backgroundColor: "rgba(43,94,94,0.1)" }}
-                />
-              </div>
-
-              <div>
-                <label className="block text-gray-700 text-sm font-medium mb-1.5">Code de réinitialisation</label>
-                <input
-                  type="text"
-                  required
-                  value={code}
-                  onChange={(e) => setCode(e.target.value.toUpperCase())}
-                  placeholder="EX: A1B2C3D4"
-                  className="w-full rounded-lg border border-gray-200 px-3 py-3 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:border-green-500 transition tracking-widest"
-                  style={{ backgroundColor: "rgba(43,94,94,0.1)" }}
-                />
-              </div>
-
               <div>
                 <label className="block text-gray-700 text-sm font-medium mb-1.5">Nouveau mot de passe</label>
                 <div className="relative">
