@@ -1,27 +1,51 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 import Image from "next/image";
 
+type Country = { id: string; name: string; phone_code?: string | null };
+
+const onlyDigits = (s: string) => s.replace(/\D/g, "");
+
 export default function ForgotPasswordPage() {
   const router = useRouter();
-  const [phone, setPhone]         = useState("");
+  const [countries, setCountries] = useState<Country[]>([]);
+  const [countryId, setCountryId] = useState("");
+  const [local, setLocal]         = useState("");
   const [birthdate, setBirthdate] = useState("");
   const [loading, setLoading]     = useState(false);
   const [error, setError]         = useState("");
+
+  // Chargement des pays (avec indicatif) + sélection Bénin par défaut.
+  useEffect(() => {
+    api.get<Country[]>("/countries")
+      .then((list) => {
+        setCountries(list);
+        const benin = list.find((c) => onlyDigits(c.phone_code ?? "") === "229");
+        setCountryId(benin?.id ?? list[0]?.id ?? "");
+      })
+      .catch(() => {});
+  }, []);
+
+  const country = useMemo(() => countries.find((c) => c.id === countryId), [countries, countryId]);
+  const code    = onlyDigits(country?.phone_code ?? "");
+  const isBenin = code === "229";
+  // Bénin : indicatif + « 01 » (nouveau format). Autres pays : indicatif seul.
+  const prefix  = code ? `+${code}${isBenin ? " 01" : ""}` : "";
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
     setLoading(true);
     try {
+      // On reconstruit le numéro complet : indicatif + (01 pour le Bénin) + saisie.
+      const phone = `${code}${isBenin ? "01" : ""}${onlyDigits(local)}`;
       const res = await api.post<{ token: string; firstname?: string }>(
         "/auth/reset-verify-identity",
         { phone, birthdate }
       );
-      // Identité vérifiée → on passe à l'écran de choix du nouveau mot de passe.
       const params = new URLSearchParams({ token: res.token });
       if (res.firstname) params.set("name", res.firstname);
       router.push(`/reset-password?${params.toString()}`);
@@ -55,16 +79,40 @@ export default function ForgotPasswordPage() {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-gray-700 text-sm font-medium mb-1.5">Numéro de téléphone</label>
-            <input
-              type="tel"
-              required
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              placeholder="97000000"
-              className="w-full rounded-lg border border-gray-200 px-3 py-3 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:border-green-500 transition"
+            <label className="block text-gray-700 text-sm font-medium mb-1.5">Pays</label>
+            <select
+              value={countryId}
+              onChange={(e) => setCountryId(e.target.value)}
+              className="w-full rounded-lg border border-gray-200 px-3 py-3 text-sm text-gray-800 focus:outline-none focus:border-green-500 transition"
               style={{ backgroundColor: "rgba(43,94,94,0.1)" }}
-            />
+            >
+              {countries.map((c) => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-gray-700 text-sm font-medium mb-1.5">Numéro de téléphone</label>
+            <div
+              className="flex items-stretch rounded-lg border border-gray-200 overflow-hidden"
+              style={{ backgroundColor: "rgba(43,94,94,0.1)" }}
+            >
+              <span className="flex items-center px-3 text-sm font-semibold text-gray-600 border-r border-gray-200 whitespace-nowrap">
+                {prefix || "+—"}
+              </span>
+              <input
+                type="tel"
+                required
+                value={local}
+                onChange={(e) => setLocal(e.target.value)}
+                placeholder={isBenin ? "96 17 13 00" : "numéro"}
+                className="flex-1 min-w-0 bg-transparent px-3 py-3 text-sm text-gray-800 placeholder-gray-400 focus:outline-none"
+              />
+            </div>
+            {isBenin && (
+              <p className="text-xs text-gray-400 mt-1">Complétez les 8 chiffres après « 01 ».</p>
+            )}
           </div>
 
           <div>
