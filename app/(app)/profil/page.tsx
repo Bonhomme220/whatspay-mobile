@@ -40,6 +40,7 @@ interface Profile {
   completion_rate: number | null;
   total_clics: number;
   unique_clics: number;
+  by_category?: { name: string; vues: number; clics: number; campaigns: number; conversion: number | null }[];
   is_ambassador: boolean;
   ambassador_code: string | null;
   ambassador_stat: AmbassadorStat | null;
@@ -283,6 +284,31 @@ function ProfilPageInner() {
             </div>
           );
         })()}
+
+        {/* ── Performance par centre d'intérêt ── */}
+        {(profile.by_category?.length ?? 0) > 0 && (
+          <div className="bg-white rounded-2xl shadow-sm p-4">
+            <p className="text-gray-500 text-[10px] font-bold uppercase tracking-widest mb-1">Par centre d'intérêt</p>
+            <p className="text-gray-400 text-[11px] mb-3">Vos vues, clics et taux de conversion selon les thèmes des campagnes que vous avez diffusées.</p>
+            <div className="space-y-2">
+              {profile.by_category!.map((c, i) => (
+                <div key={i} className="border border-gray-100 rounded-xl px-3 py-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-gray-700">{c.name}</span>
+                    <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full" style={{background: (c.conversion ?? 0) >= 2 ? '#dcfce7' : '#f3f4f6', color: (c.conversion ?? 0) >= 2 ? '#16a34a' : '#6b7280'}}>
+                      {c.conversion !== null ? c.conversion + '% conv.' : '—'}
+                    </span>
+                  </div>
+                  <div className="flex gap-4 text-[11px] text-gray-500 mt-1">
+                    <span>👁️ {fmt(c.vues)} vues</span>
+                    <span className="text-blue-600">🖱️ {fmt(c.clics)} clics</span>
+                    <span>📣 {fmt(c.campaigns)} campagne{c.campaigns > 1 ? 's' : ''}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* ── Infos personnelles ── */}
         <div className="bg-white rounded-2xl shadow-sm p-4 space-y-3">
