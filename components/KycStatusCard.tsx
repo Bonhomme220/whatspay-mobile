@@ -5,6 +5,8 @@ import { api } from "@/lib/api";
 
 interface KycState {
   kyc_status: "pending" | "submitted" | "verified" | "rejected";
+  attempt_status: "pending" | "manual_review" | "resubmit" | "approved" | "rejected" | null;
+  reason: string | null;
   required: boolean;
   deadline: string | null;
   attempts_left: number;
@@ -21,26 +23,42 @@ export default function KycStatusCard() {
   const [s, setS] = useState<KycState | null>(null);
 
   useEffect(() => {
-    api.get<KycState>("/kyc/state").then(setS).catch(() => {});
+    const refresh = () => { api.get<KycState>("/kyc/state").then(setS).catch(() => {}); };
+    refresh();
+    // Une identité renvoyée pour correction doit se refléter au retour sur l'app.
+    const onVisible = () => { if (document.visibilityState === "visible") refresh(); };
+    window.addEventListener("focus", refresh);
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      window.removeEventListener("focus", refresh);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
   }, []);
 
   if (!s) return null;
 
   const open = () => { if (s.verify_url) window.location.href = s.verify_url; };
 
+  // À corriger (resubmit) : renvoyée par l'admin avec un motif → action requise.
+  const isResubmit = s.attempt_status === "resubmit";
+
   // Palette + libellés selon le statut
-  const cfg = {
-    verified:  { ic: "✓",  bg: "bg-green-50 border-green-200",  ico: "bg-green-100 text-green-600", title: "text-green-800", t: "Identité vérifiée", sub: "Ton identité est confirmée." },
-    submitted: { ic: "⏳", bg: "bg-amber-50 border-amber-200",  ico: "bg-amber-100 text-amber-600", title: "text-amber-800", t: "Vérification en cours", sub: "Nous examinons ta pièce." },
-    pending:   { ic: "🛡️", bg: "bg-white border-gray-100",       ico: "bg-green-600/10 text-green-600", title: "text-gray-900", t: "Vérifie ton identité", sub: "" },
-    rejected:  { ic: "!",  bg: "bg-red-50 border-red-200",      ico: "bg-red-100 text-red-600",    title: "text-red-700",  t: "Vérification refusée", sub: "Reprends la vérification." },
-  }[s.kyc_status];
+  const cfg = isResubmit
+    ? { ic: "✏️", bg: "bg-amber-50 border-amber-200", ico: "bg-amber-100 text-amber-600", title: "text-amber-800", t: "Vérification à corriger", sub: "" }
+    : {
+        verified:  { ic: "✓",  bg: "bg-green-50 border-green-200",  ico: "bg-green-100 text-green-600", title: "text-green-800", t: "Identité vérifiée", sub: "Ton identité est confirmée." },
+        submitted: { ic: "⏳", bg: "bg-amber-50 border-amber-200",  ico: "bg-amber-100 text-amber-600", title: "text-amber-800", t: "Vérification en cours", sub: "Nous examinons ta pièce." },
+        pending:   { ic: "🛡️", bg: "bg-white border-gray-100",       ico: "bg-green-600/10 text-green-600", title: "text-gray-900", t: "Vérifie ton identité", sub: "" },
+        rejected:  { ic: "!",  bg: "bg-red-50 border-red-200",      ico: "bg-red-100 text-red-600",    title: "text-red-700",  t: "Vérification refusée", sub: "Reprends la vérification." },
+      }[s.kyc_status];
 
   const d = daysLeft(s.deadline);
-  const actionable = s.kyc_status === "pending" || s.kyc_status === "rejected";
-  const subText = s.kyc_status === "pending"
-    ? (d !== null ? `Il te reste ${d} jour${d > 1 ? "s" : ""} pour vérifier ton identité.` : "Vérification requise pour recevoir des campagnes.")
-    : cfg.sub;
+  const actionable = isResubmit || s.kyc_status === "pending" || s.kyc_status === "rejected";
+  const subText = isResubmit
+    ? (s.reason ? `${s.reason} Corrige et renvoie ta pièce.` : "Une information doit être corrigée. Corrige et renvoie ta pièce.")
+    : s.kyc_status === "pending"
+      ? (d !== null ? `Il te reste ${d} jour${d > 1 ? "s" : ""} pour vérifier ton identité.` : "Vérification requise pour recevoir des campagnes.")
+      : cfg.sub;
 
   return (
     <button

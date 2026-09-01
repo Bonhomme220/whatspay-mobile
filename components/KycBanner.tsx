@@ -23,7 +23,17 @@ export default function KycBanner() {
   const [state, setState] = useState<KycState | null>(null);
 
   useEffect(() => {
-    api.get<KycState>("/kyc/state").then(setState).catch(() => {});
+    const refresh = () => { api.get<KycState>("/kyc/state").then(setState).catch(() => {}); };
+    refresh();
+    // Rafraîchit quand l'utilisateur revient sur l'app / l'onglet : une identité renvoyée
+    // pour correction (resubmit) doit se refléter sans rechargement complet.
+    const onVisible = () => { if (document.visibilityState === "visible") refresh(); };
+    window.addEventListener("focus", refresh);
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      window.removeEventListener("focus", refresh);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
   }, []);
 
   if (!state || !state.required) return null;
