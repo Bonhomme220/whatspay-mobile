@@ -315,6 +315,21 @@ export default function RegisterPage() {
               </div>
               <Input label="Adresse mail" type="email" value={form.email} onChange={(e) => { set("email", e.target.value); setFe((f) => ({ ...f, email: "" })); }} placeholder="votre@mail.com" error={fe.email} />
               <Input label="Date de naissance" type="date" value={form.birthdate} onChange={(e) => { set("birthdate", e.target.value); setFe((f) => ({ ...f, birthdate: "" })); }} max={new Date(Date.now() - 16 * 365.25 * 86400000).toISOString().split("T")[0]} error={fe.birthdate} />
+              <div>
+                <Input
+                  label="Code ambassadeur (facultatif)"
+                  value={form.ambassador_code}
+                  onChange={(e) => set("ambassador_code", e.target.value.toUpperCase())}
+                  placeholder="Ex : WTP-ABC123"
+                  readOnly={refLocked}
+                  style={refLocked ? { backgroundColor: "#f3f4f6", cursor: "not-allowed" } : undefined}
+                />
+                <p className="text-xs mt-1.5" style={{ color: refLocked ? "#16a34a" : "#6b7280" }}>
+                  {refLocked
+                    ? "✓ Vous êtes parrainé — le code du parrain est appliqué automatiquement."
+                    : "Un ambassadeur WhatsPay vous a-t-il invité ? Entrez son code ici. Sinon, laissez ce champ vide."}
+                </p>
+              </div>
             </>
           )}
 
@@ -461,21 +476,6 @@ export default function RegisterPage() {
                   style={{ backgroundColor: "rgba(43,94,94,0.1)" }}
                 />
                 <FieldError msg={fe.password_confirmation} />
-              </div>
-              <div>
-                <Input
-                  label="Code ambassadeur (facultatif)"
-                  value={form.ambassador_code}
-                  onChange={(e) => set("ambassador_code", e.target.value.toUpperCase())}
-                  placeholder="Ex : WTP-ABC123"
-                  readOnly={refLocked}
-                  style={refLocked ? { backgroundColor: "#f3f4f6", cursor: "not-allowed" } : undefined}
-                />
-                <p className="text-xs mt-1.5" style={{ color: refLocked ? "#16a34a" : "#6b7280" }}>
-                  {refLocked
-                    ? "✓ Vous êtes parrainé — le code du parrain est appliqué automatiquement."
-                    : "Un ambassadeur WhatsPay vous a-t-il invité ? Entrez son code ici. Sinon, laissez ce champ vide."}
-                </p>
               </div>
             </>
           )}
