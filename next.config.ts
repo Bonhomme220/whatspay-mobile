@@ -10,6 +10,8 @@ const nextConfig: NextConfig = {
   async redirects() {
     return [
       { source: "/admin/:path*", destination: "/dashboard", permanent: false },
+      // Lien de parrainage court : /r/CODE → inscription avec le code du parrain pré-rempli
+      { source: "/r/:code", destination: "/register?ref=:code", permanent: false },
     ];
   },
   async rewrites() {
