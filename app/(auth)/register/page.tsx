@@ -94,6 +94,20 @@ export default function RegisterPage() {
     }
   }, []);
 
+  // Nom du parrain (affiché sous le champ « Vous êtes invité par … »).
+  const [ambassadorName, setAmbassadorName] = useState<string | null>(null);
+  useEffect(() => {
+    const code = form.ambassador_code.trim();
+    if (!code) { setAmbassadorName(null); return; }
+    let cancelled = false;
+    const t = setTimeout(() => {
+      api.get<{ found: boolean; name: string | null }>(`/auth/ambassador-name/${encodeURIComponent(code)}`)
+        .then((r) => { if (!cancelled) setAmbassadorName(r.found ? r.name : null); })
+        .catch(() => { if (!cancelled) setAmbassadorName(null); });
+    }, 400);
+    return () => { cancelled = true; clearTimeout(t); };
+  }, [form.ambassador_code]);
+
   // Référentiels
   const [countries,        setCountries]        = useState<Ref[]>([]);
   const [localities,       setLocalities]       = useState<Ref[]>([]);
@@ -324,11 +338,17 @@ export default function RegisterPage() {
                   readOnly={refLocked}
                   style={refLocked ? { backgroundColor: "#f3f4f6", cursor: "not-allowed" } : undefined}
                 />
-                <p className="text-xs mt-1.5" style={{ color: refLocked ? "#16a34a" : "#6b7280" }}>
-                  {refLocked
-                    ? "✓ Vous êtes parrainé — le code du parrain est appliqué automatiquement."
-                    : "Un ambassadeur WhatsPay vous a-t-il invité ? Entrez son code ici. Sinon, laissez ce champ vide."}
-                </p>
+                {ambassadorName ? (
+                  <p className="text-xs mt-1.5 font-semibold" style={{ color: "#16a34a" }}>
+                    ✓ Vous êtes invité par {ambassadorName}
+                  </p>
+                ) : (
+                  <p className="text-xs mt-1.5" style={{ color: refLocked ? "#16a34a" : "#6b7280" }}>
+                    {refLocked
+                      ? "✓ Vous êtes parrainé — le code du parrain est appliqué automatiquement."
+                      : "Un ambassadeur WhatsPay vous a-t-il invité ? Entrez son code ici. Sinon, laissez ce champ vide."}
+                  </p>
+                )}
               </div>
             </>
           )}
