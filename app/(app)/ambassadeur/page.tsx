@@ -125,7 +125,7 @@ export default function AmbassadeurPage() {
             <div className="flex items-center justify-between bg-yellow-50 border border-yellow-200 rounded-xl px-4 py-3">
               <span className="text-yellow-800 font-bold text-xl tracking-widest">{data.ambassador_code}</span>
               <button
-                onClick={() => navigator.clipboard?.writeText(`https://app.whatspay.africa/admin/registration/diffuseur?ref=${data.ambassador_code}`)}
+                onClick={() => navigator.clipboard?.writeText(`https://app.whatspay.africa/register?ref=${data.ambassador_code}`)}
                 className="ml-3 text-yellow-600 p-1.5 rounded-lg bg-yellow-100"
                 title="Copier le lien de parrainage"
               >
@@ -136,7 +136,7 @@ export default function AmbassadeurPage() {
             </div>
             <button
               onClick={() => {
-                const link = `https://app.whatspay.africa/admin/registration/diffuseur?ref=${data.ambassador_code}`;
+                const link = `https://app.whatspay.africa/register?ref=${data.ambassador_code}`;
                 const message = `Rejoins WhatsPAY avec mon code ambassadeur ${data.ambassador_code} et monétise tes Status WhatsApp ! Inscris-toi ici : ${link}`;
                 if (navigator.share) navigator.share({ text: message }).catch(() => {});
                 else navigator.clipboard?.writeText(link);
