@@ -82,6 +82,17 @@ export default function RegisterPage() {
   const [error, setError]     = useState("");
   const [loading, setLoading] = useState(false);
   const [showPwd, setShowPwd] = useState(false);
+  const [refLocked, setRefLocked] = useState(false); // code parrain issu d'un lien → verrouillé
+
+  // Lien de parrainage : ?ref=CODE (ou ?ambassador_code=CODE) → pré-remplit et verrouille le code.
+  useEffect(() => {
+    const p = new URLSearchParams(window.location.search);
+    const ref = (p.get("ref") || p.get("ambassador_code") || "").trim().toUpperCase();
+    if (ref) {
+      setForm((f) => ({ ...f, ambassador_code: ref }));
+      setRefLocked(true);
+    }
+  }, []);
 
   // Référentiels
   const [countries,        setCountries]        = useState<Ref[]>([]);
@@ -457,9 +468,13 @@ export default function RegisterPage() {
                   value={form.ambassador_code}
                   onChange={(e) => set("ambassador_code", e.target.value.toUpperCase())}
                   placeholder="Ex : WTP-ABC123"
+                  readOnly={refLocked}
+                  style={refLocked ? { backgroundColor: "#f3f4f6", cursor: "not-allowed" } : undefined}
                 />
-                <p className="text-xs text-gray-500 mt-1.5">
-                  Un ambassadeur WhatsPay vous a-t-il invité ? Entrez son code ici. Sinon, laissez ce champ vide.
+                <p className="text-xs mt-1.5" style={{ color: refLocked ? "#16a34a" : "#6b7280" }}>
+                  {refLocked
+                    ? "✓ Vous êtes parrainé — le code du parrain est appliqué automatiquement."
+                    : "Un ambassadeur WhatsPay vous a-t-il invité ? Entrez son code ici. Sinon, laissez ce champ vide."}
                 </p>
               </div>
             </>

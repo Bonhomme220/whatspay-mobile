@@ -125,15 +125,27 @@ export default function AmbassadeurPage() {
             <div className="flex items-center justify-between bg-yellow-50 border border-yellow-200 rounded-xl px-4 py-3">
               <span className="text-yellow-800 font-bold text-xl tracking-widest">{data.ambassador_code}</span>
               <button
-                onClick={() => navigator.clipboard?.writeText(data.ambassador_code!)}
+                onClick={() => navigator.clipboard?.writeText(`https://whatspay.africa/r/${data.ambassador_code}`)}
                 className="ml-3 text-yellow-600 p-1.5 rounded-lg bg-yellow-100"
+                title="Copier le lien de parrainage"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
                 </svg>
               </button>
             </div>
-            <p className="text-gray-400 text-xs mt-2">Partagez ce code à vos contacts pour qu'ils s'inscrivent sur WhatsPAY.</p>
+            <button
+              onClick={() => {
+                const link = `https://whatspay.africa/r/${data.ambassador_code}`;
+                const message = `Rejoins WhatsPAY avec mon code ambassadeur ${data.ambassador_code} et monétise tes Status WhatsApp ! Inscris-toi ici : ${link}`;
+                if (navigator.share) navigator.share({ text: message, url: link }).catch(() => {});
+                else navigator.clipboard?.writeText(link);
+              }}
+              className="mt-3 w-full bg-yellow-500 text-white font-semibold text-sm py-2.5 rounded-xl hover:brightness-105"
+            >
+              📤 Partager mon lien de parrainage
+            </button>
+            <p className="text-gray-400 text-xs mt-2">Partagez votre <strong>lien</strong> : le code du parrain sera pré-rempli automatiquement à l'inscription de vos filleuls.</p>
           </div>
         )}
 
