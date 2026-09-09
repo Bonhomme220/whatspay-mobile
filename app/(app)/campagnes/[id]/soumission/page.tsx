@@ -17,6 +17,7 @@ interface Task {
   id: string; name: string; is_onboarding: boolean; is_civic?: boolean;
   startdate: string; enddate: string;
 }
+interface PayoutTier { from: number; to: number | null; rate: number; views_in_tier: number; subtotal: number }
 interface Mission {
   id: string; status: string;
   expected_gain: number; gain: number; vues: number;
@@ -26,6 +27,11 @@ interface Mission {
   reason_description: string | null;
   complaint: Complaint | null;
   task: Task | null;
+  payout_mode: "flat" | "tiered" | null;
+  payout_breakdown: PayoutTier[] | null;
+  ambassador_bonus: number | null;
+  click_bonus: number | null;
+  click_bonus_clicks: number | null;
 }
 
 const STATUS_LABEL: Record<string, string> = {
@@ -146,6 +152,42 @@ export default function SoumissionPage() {
             </div>
           )}
         </div>
+
+        {/* ── Détail du calcul de paiement (transparence barème dégressif) ── */}
+        {(mission.status === "SUBMISSION_ACCEPTED" || mission.status === "SUBMITED") && (
+          <div className="bg-white rounded-2xl shadow-sm p-4">
+            <p className="text-gray-500 text-[10px] font-bold uppercase tracking-widest mb-2">Détail du gain</p>
+            {mission.payout_mode === "tiered" && mission.payout_breakdown && mission.payout_breakdown.length > 0 ? (
+              <div className="space-y-1.5">
+                {mission.payout_breakdown.map((t, i) => (
+                  <div key={i} className="flex items-center justify-between text-xs">
+                    <span className="text-gray-500">
+                      {t.views_in_tier.toLocaleString("fr-FR")} vues {t.to !== null ? `(${t.from}-${t.to})` : `(au-delà de ${t.from})`} × {t.rate.toFixed(2)} F
+                    </span>
+                    <span className="font-semibold text-gray-700">{t.subtotal.toLocaleString("fr-FR")} F</span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-gray-500">{mission.vues.toLocaleString("fr-FR")} vues × 1,00 F (taux plat)</span>
+                <span className="font-semibold text-gray-700">{(mission.vues).toLocaleString("fr-FR")} F</span>
+              </div>
+            )}
+            {mission.ambassador_bonus !== null && mission.ambassador_bonus > 0 && (
+              <div className="flex items-center justify-between text-xs mt-1.5 pt-1.5 border-t border-gray-50">
+                <span className="text-gray-500">Bonus ambassadeur</span>
+                <span className="font-semibold text-green-600">+{mission.ambassador_bonus.toLocaleString("fr-FR")} F</span>
+              </div>
+            )}
+            {mission.click_bonus !== null && mission.click_bonus > 0 && (
+              <div className="flex items-center justify-between text-xs mt-1.5 pt-1.5 border-t border-gray-50">
+                <span className="text-gray-500">Bonus clics uniques ({mission.click_bonus_clicks} clics)</span>
+                <span className="font-semibold text-green-600">+{mission.click_bonus.toLocaleString("fr-FR")} F</span>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* ── Capture d'écran ── */}
         {mission.files ? (

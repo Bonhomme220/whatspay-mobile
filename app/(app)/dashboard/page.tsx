@@ -27,6 +27,8 @@ interface DashboardData {
   monthly: { months: string[]; completed: number[]; gains: number[] };
   faqs: Array<{ id: string; question: string; answer: string }>;
   show_whatsapp_channel_modal?: boolean;
+  show_tiered_payout_notice?: boolean;
+  tiered_payout_notice?: { days_left: number; grace_end_date: string } | null;
 }
 
 const WHATSAPP_CHANNEL_LINK = "https://whatsapp.com/channel/0029VbDB5VyISTkL0OHcht2n";
@@ -61,6 +63,9 @@ export default function DashboardPage() {
   const [loading, setLoading]    = useState(true);
   const [wantWaModal, setWantWaModal] = useState(false);  // le backend autorise l'affichage
   const [waShownMarked, setWaShownMarked] = useState(false);
+  const [wantTieredModal, setWantTieredModal] = useState(false);
+  const [tieredNotice, setTieredNotice] = useState<{ days_left: number; grace_end_date: string } | null>(null);
+  const [tieredShownMarked, setTieredShownMarked] = useState(false);
   const {
     nudgeBanners, dismissNudgeBanner, profileIncomplete,
     onboardingDone, needsLocationUpdate, nudgeModal,
@@ -71,6 +76,10 @@ export default function DashboardPage() {
       .then((d) => {
         setData(d);
         if (d?.show_whatsapp_channel_modal) setWantWaModal(true);
+        if (d?.show_tiered_payout_notice) {
+          setWantTieredModal(true);
+          setTieredNotice(d.tiered_payout_notice ?? null);
+        }
       })
       .catch(() => {}) // 401 géré globalement par wp:unauthorized dans le layout
       .finally(() => setLoading(false));
@@ -80,6 +89,9 @@ export default function DashboardPage() {
   // (localisation, onboarding, nudge) n'est actif — sinon il se chevauche et
   // « clignote » à l'inscription. On l'enregistre comme vu seulement à ce moment.
   const showWaModal = wantWaModal && onboardingDone && !needsLocationUpdate && !nudgeModal;
+  // Le modal barème dégressif n'apparaît qu'une fois le modal WhatsApp écoulé, pour éviter
+  // d'empiler deux modals au même chargement.
+  const showTieredModal = wantTieredModal && !showWaModal && onboardingDone && !needsLocationUpdate && !nudgeModal;
 
   useEffect(() => {
     if (showWaModal && !waShownMarked) {
@@ -88,6 +100,13 @@ export default function DashboardPage() {
     }
   }, [showWaModal, waShownMarked]);
 
+  useEffect(() => {
+    if (showTieredModal && !tieredShownMarked) {
+      setTieredShownMarked(true);
+      api.post("/tiered-payout-notice/shown", {}).catch(() => {});
+    }
+  }, [showTieredModal, tieredShownMarked]);
+
   function markJoined() {
     api.post("/whatsapp-channel/joined", {}).catch(() => {});
     setWantWaModal(false);
@@ -95,6 +114,9 @@ export default function DashboardPage() {
   function joinChannel() {
     markJoined();
     window.open(WHATSAPP_CHANNEL_LINK, "_blank");
+  }
+  function dismissTieredModal() {
+    setWantTieredModal(false);
   }
 
   if (loading) {
@@ -426,6 +448,31 @@ export default function DashboardPage() {
               </button>
               <button onClick={markJoined} className="mt-2 w-full py-3 text-green-700 font-semibold rounded-2xl text-sm">
                 J&apos;y suis déjà
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showTieredModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4" style={{ background: "rgba(0,0,0,0.55)" }}>
+          <div className="w-full max-w-sm bg-white rounded-2xl p-6 relative">
+            <button onClick={dismissTieredModal} className="absolute top-3 right-3 text-gray-400" aria-label="Fermer">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
+            <div className="flex flex-col items-center text-center">
+              <div className="w-16 h-16 rounded-2xl bg-amber-100 flex items-center justify-center mb-4 text-3xl">📊</div>
+              <h2 className="text-lg font-bold text-gray-800">Le tarif par vue évolue bientôt</h2>
+              <p className="text-sm text-gray-500 mt-2 leading-relaxed">
+                Un nouveau barème de paiement par palier entre en vigueur pour vous le{" "}
+                <strong>{tieredNotice ? new Date(tieredNotice.grace_end_date).toLocaleDateString("fr-FR") : ""}</strong>
+                {tieredNotice ? ` (dans ${tieredNotice.days_left} j)` : ""}. D&apos;ici là, votre tarif actuel reste inchangé.
+              </p>
+              <Link href="/faq" onClick={dismissTieredModal} className="mt-5 w-full py-3.5 bg-green-600 text-white font-semibold rounded-2xl text-sm">
+                Voir la FAQ
+              </Link>
+              <button onClick={dismissTieredModal} className="mt-2 w-full py-3 text-green-700 font-semibold rounded-2xl text-sm">
+                Compris
               </button>
             </div>
           </div>
