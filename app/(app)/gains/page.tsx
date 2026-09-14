@@ -268,6 +268,7 @@ function WithdrawModal({ balance, hasPending, pendingAmount, onClose, onSuccess 
   const [submitting, setSub]  = useState(false);
   const [error, setError]     = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [kycVerifyUrl, setKycVerifyUrl] = useState<string | null>(null);
 
   // Si retrait déjà en cours, on affiche directement l'info sans formulaire
   if (hasPending) {
@@ -315,8 +316,11 @@ function WithdrawModal({ balance, hasPending, pendingAmount, onClose, onSuccess 
         setError(res.message);
       }
     } catch (err: unknown) {
-      const e = err as { message?: string };
+      const e = err as { message?: string; kyc_required?: boolean };
       setError(e?.message ?? "Une erreur est survenue.");
+      if (e?.kyc_required) {
+        api.get<{ verify_url: string | null }>("/kyc/state").then((k) => setKycVerifyUrl(k.verify_url)).catch(() => {});
+      }
     } finally {
       setSub(false);
     }
@@ -352,6 +356,11 @@ function WithdrawModal({ balance, hasPending, pendingAmount, onClose, onSuccess 
             {error && (
               <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3">
                 <p className="text-red-600 text-xs">{error}</p>
+                {kycVerifyUrl && (
+                  <a href={kycVerifyUrl} className="mt-2 inline-block text-red-700 text-xs font-semibold underline">
+                    Vérifier mon identité (KYC)
+                  </a>
+                )}
               </div>
             )}
 

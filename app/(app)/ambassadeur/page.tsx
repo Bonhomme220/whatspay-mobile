@@ -8,6 +8,8 @@ interface AmbassadorData {
   ambassador_code: string | null;
   gain_per_view: number;
   is_eligible: boolean;
+  balance: number;
+  kyc_verified: boolean;
   has_referrer: boolean;
   stat: { active_referrals: number; total_referrals: number } | null;
   referrals: { id: string; name: string; joined_at: string; missions: number }[];
@@ -27,10 +29,16 @@ export default function AmbassadeurPage() {
 
   const [activating, setActivating]       = useState(false);
   const [activateError, setActivateError] = useState<string | null>(null);
+  const [kycVerifyUrl, setKycVerifyUrl]   = useState<string | null>(null);
 
   useEffect(() => {
     api.get<AmbassadorData>("/ambassador")
-      .then(setData)
+      .then((d) => {
+        setData(d);
+        if (d.balance > 1000 && !d.kyc_verified) {
+          api.get<{ verify_url: string | null }>("/kyc/state").then((k) => setKycVerifyUrl(k.verify_url)).catch(() => {});
+        }
+      })
       .catch(() => {}) // 401 géré globalement par wp:unauthorized dans le layout
       .finally(() => setLoading(false));
   }, []);
@@ -209,21 +217,37 @@ export default function AmbassadeurPage() {
         </div>
 
         {/* Éligibilité si pas encore ambassadeur */}
-        {!data.is_ambassador && (
-          <div className={`rounded-2xl p-4 ${data.is_eligible ? "bg-green-50 border border-green-200" : "bg-gray-50 border border-gray-200"}`}>
+        {!data.is_ambassador && (() => {
+          const thresholdReached = data.balance > 1000;
+          const needsKyc = thresholdReached && !data.kyc_verified;
+          const tone = data.is_eligible ? "green" : needsKyc ? "amber" : "gray";
+          return (
+          <div className={
+            tone === "green" ? "rounded-2xl p-4 bg-green-50 border border-green-200"
+            : tone === "amber" ? "rounded-2xl p-4 bg-amber-50 border border-amber-200"
+            : "rounded-2xl p-4 bg-gray-50 border border-gray-200"
+          }>
             <div className="flex items-center gap-2 mb-2">
-              <svg className={`w-5 h-5 ${data.is_eligible ? "text-green-600" : "text-gray-400"}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className={`w-5 h-5 ${tone === "green" ? "text-green-600" : tone === "amber" ? "text-amber-500" : "text-gray-400"}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={data.is_eligible ? "M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" : "M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"} />
               </svg>
-              <p className={`text-sm font-semibold ${data.is_eligible ? "text-green-700" : "text-gray-600"}`}>
-                {data.is_eligible ? "Vous êtes éligible au programme !" : "Pas encore éligible"}
+              <p className={`text-sm font-semibold ${tone === "green" ? "text-green-700" : tone === "amber" ? "text-amber-700" : "text-gray-600"}`}>
+                {data.is_eligible ? "Vous êtes éligible au programme !" : needsKyc ? "Presque éligible — KYC requise" : "Pas encore éligible"}
               </p>
             </div>
-            <p className={`text-xs leading-relaxed ${data.is_eligible ? "text-green-600" : "text-gray-500"}`}>
+            <p className={`text-xs leading-relaxed ${tone === "green" ? "text-green-600" : tone === "amber" ? "text-amber-600" : "text-gray-500"}`}>
               {data.is_eligible
-                ? "Vous avez atteint 1 000 F de retraits validés. Générez votre code dès maintenant pour commencer à parrainer."
-                : "Pour devenir ambassadeur, vous devez avoir effectué au moins 1 000 F de retraits validés sur WhatsPAY."}
+                ? "Vous avez plus de 1 000 F sur votre portefeuille et une identité vérifiée. Générez votre code dès maintenant pour commencer à parrainer."
+                : needsKyc
+                ? "Vous avez atteint le seuil de 1 000 F — il ne vous manque plus que la vérification de votre identité (KYC) pour devenir éligible."
+                : "Pour devenir ambassadeur, votre solde doit dépasser 1 000 F et votre identité (KYC) doit être vérifiée."}
             </p>
+
+            {needsKyc && kycVerifyUrl && (
+              <a href={kycVerifyUrl} className="mt-3 block w-full py-3 bg-amber-500 text-white text-sm font-bold rounded-xl text-center">
+                Vérifier mon identité (KYC)
+              </a>
+            )}
 
             {data.is_eligible && (
               <div className="mt-3">
@@ -249,7 +273,8 @@ export default function AmbassadeurPage() {
               </div>
             )}
           </div>
-        )}
+          );
+        })()}
 
         {/* Liste filleuls */}
         {data.is_ambassador && (
