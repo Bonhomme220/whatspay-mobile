@@ -1,18 +1,43 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { tokenStore, userStore, homeRouteForProfil } from "@/lib/api";
 
+interface LandingStats {
+  diffuseurs: string;
+  villes: string;
+  vues_jour: string;
+  vues_jour_abbrev: string;
+  vues_total: string;
+  vues_total_abbrev: string;
+  campagnes: string;
+  nouveaux_jour: string;
+}
+
+const FALLBACK_STATS: LandingStats = {
+  diffuseurs: "12 000", villes: "20", vues_jour: "1 000 000", vues_jour_abbrev: "1M",
+  vues_total: "10 000 000", vues_total_abbrev: "10M", campagnes: "200", nouveaux_jour: "500",
+};
+
 export default function Home() {
   const router = useRouter();
+  const [stats, setStats] = useState<LandingStats>(FALLBACK_STATS);
 
   // Si déjà connecté → espace correspondant au rôle
   useEffect(() => {
     if (tokenStore.get()) router.replace(homeRouteForProfil(userStore.get()?.profil));
   }, [router]);
+
+  // Chiffres réels de la plateforme (visiteur anonyme, pas d'auth requise).
+  useEffect(() => {
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/landing-stats`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => { if (d) setStats(d); })
+      .catch(() => {});
+  }, []);
 
   return (
     <div className="min-h-screen bg-white">
@@ -25,7 +50,7 @@ export default function Home() {
             Connexion
           </Link>
           <Link href="/register" className="text-sm font-bold bg-green-600 text-white px-4 py-1.5 rounded-lg">
-            S'inscrire
+            S&apos;inscrire
           </Link>
         </div>
       </header>
@@ -37,10 +62,10 @@ export default function Home() {
         <div className="relative z-10">
           <div className="inline-flex items-center bg-white/20 rounded-full px-3 py-1 mb-5">
             <span className="w-2 h-2 bg-green-200 rounded-full mr-2 animate-pulse" />
-            <span className="text-xs font-semibold text-green-50">+12 000 diffuseurs actifs au Bénin, Togo &amp; Afrique de l'Ouest</span>
+            <span className="text-xs font-semibold text-green-50">+{stats.diffuseurs} diffuseurs actifs au Bénin, Togo &amp; Afrique de l&apos;Ouest</span>
           </div>
           <h1 className="text-3xl font-bold text-white leading-tight mb-3">
-            Gagne de l'argent avec tes{" "}
+            Gagne de l&apos;argent avec tes{" "}
             <span className="text-green-200">Status WhatsApp</span>
           </h1>
           <p className="text-green-100 text-base mb-7 leading-relaxed">
@@ -49,11 +74,11 @@ export default function Home() {
           <div className="flex flex-col gap-3">
             <Link href="/register"
               className="bg-white text-green-700 font-bold text-center py-3.5 rounded-xl shadow-lg text-base">
-              Je m'inscris gratuitement →
+              Je m&apos;inscris gratuitement →
             </Link>
             <Link href="/login"
               className="border-2 border-white/60 text-white font-semibold text-center py-3 rounded-xl text-base">
-              J'ai déjà un compte
+              J&apos;ai déjà un compte
             </Link>
           </div>
           <div className="flex items-center gap-4 mt-5 text-green-100 text-xs flex-wrap">
@@ -69,6 +94,28 @@ export default function Home() {
               <svg className="w-3.5 h-3.5 text-green-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7"/></svg>
               Sans abonnement
             </span>
+          </div>
+        </div>
+      </section>
+
+      {/* ── CHIFFRES ── */}
+      <section className="px-5 py-8 bg-green-700">
+        <div className="grid grid-cols-2 gap-4 text-center">
+          <div>
+            <p className="text-2xl font-bold text-white font-mono">+{stats.diffuseurs}</p>
+            <p className="text-green-200 text-xs mt-0.5">Diffuseurs actifs</p>
+          </div>
+          <div>
+            <p className="text-2xl font-bold text-white font-mono">+{stats.villes}</p>
+            <p className="text-green-200 text-xs mt-0.5">Villes couvertes</p>
+          </div>
+          <div>
+            <p className="text-2xl font-bold text-white font-mono">{stats.vues_jour_abbrev}+</p>
+            <p className="text-green-200 text-xs mt-0.5">Vues générées / jour</p>
+          </div>
+          <div>
+            <p className="text-2xl font-bold text-white font-mono">+{stats.campagnes}</p>
+            <p className="text-green-200 text-xs mt-0.5">Campagnes diffusées</p>
           </div>
         </div>
       </section>
@@ -155,6 +202,22 @@ export default function Home() {
         <p className="text-green-100 text-sm mb-6 leading-relaxed">
           Pour chaque filleul actif que tu parraines, ton gain par vue augmente de +0,01 F. Sans plafond.
         </p>
+        <div className="space-y-4 mb-6">
+          {[
+            { n: "1", title: "Atteins 1 000 F", desc: "Solde vérifié + identité (KYC) validée." },
+            { n: "2", title: "Génère ton code", desc: "Un code unique à partager à tes contacts." },
+            { n: "3", title: "Tes filleuls s'inscrivent", desc: "Ils rejoignent avec ton code et participent aux campagnes." },
+            { n: "4", title: "Ton gain augmente", desc: "+0,01 F par filleul actif, sur chaque vue. Sans plafond." },
+          ].map((s) => (
+            <div key={s.n} className="flex items-start gap-3">
+              <div className="w-7 h-7 rounded-full bg-white/20 text-white font-bold text-sm flex items-center justify-center flex-shrink-0">{s.n}</div>
+              <div>
+                <p className="font-bold text-white text-sm mb-0.5">{s.title}</p>
+                <p className="text-green-100 text-xs leading-relaxed">{s.desc}</p>
+              </div>
+            </div>
+          ))}
+        </div>
         <div className="bg-white/10 rounded-2xl p-5 text-center">
           <p className="text-green-100 text-xs mb-2">Exemple avec 50 filleuls actifs :</p>
           <p className="text-white font-mono font-bold text-base">
@@ -168,14 +231,14 @@ export default function Home() {
       <section className="px-5 py-12 bg-white text-center">
         <h2 className="text-2xl font-bold text-gray-900 mb-3">Prêt à commencer ?</h2>
         <p className="text-gray-500 text-sm mb-7 leading-relaxed">
-          Rejoins les 12 000 diffuseurs qui gagnent de l'argent chaque semaine grâce à leurs Status WhatsApp.
+          Rejoins les +{stats.diffuseurs} diffuseurs qui gagnent de l&apos;argent chaque semaine grâce à leurs Status WhatsApp.
         </p>
         <Link href="/register"
           className="block bg-green-600 text-white font-bold py-4 rounded-xl text-base mb-3">
           Rejoindre WhatsPAY gratuitement →
         </Link>
         <Link href="/login" className="block text-sm text-gray-500 py-2">
-          J'ai déjà un compte — Se connecter
+          J&apos;ai déjà un compte — Se connecter
         </Link>
         <p className="mt-8 text-xs text-gray-400">
           Vous êtes annonceur ?{" "}
