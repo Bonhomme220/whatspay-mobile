@@ -1,6 +1,6 @@
-// Digital Asset Links pour la TWA Play Store (filet de sécurité si le fichier
-// public/.well-known/assetlinks.json n'est pas servi). Servi en application/json.
-// Rewrite depuis /.well-known/assetlinks.json → cf. next.config.ts.
+// Digital Asset Links pour l'app Android com.whatspay.native (filet de sécurité
+// si le fichier public/.well-known/assetlinks.json n'est pas servi). Servi en
+// application/json. Rewrite depuis /.well-known/assetlinks.json → cf. next.config.ts.
 
 const ASSETLINKS = [
   {
@@ -9,11 +9,8 @@ const ASSETLINKS = [
       namespace: "android_app",
       package_name: "com.whatspay.native",
       sha256_cert_fingerprints: [
-        // TODO: remplacer par la vraie empreinte SHA-256 du certificat de signature Play Store
-        // (Play Console → Configuration → Intégrité de l'application → Certificat de signature
-        // de l'application). Tant que ce placeholder est en place, Android refusera l'App Link
-        // (vérification cryptographique échouée) et retombera sur le navigateur/PWA.
-        "__TODO_REPLACE_WITH_PLAY_CONSOLE_APP_SIGNING_SHA256__",
+        // Certificat de signature Play Store (Play Console → Intégrité de l'application)
+        "FB:0F:56:B0:A4:6F:E0:6A:54:D4:72:21:0F:B5:6F:EA:59:9A:A2:22:F6:6D:EB:F8:23:1F:2B:DB:B3:F6:F0:C5",
       ],
     },
   },
