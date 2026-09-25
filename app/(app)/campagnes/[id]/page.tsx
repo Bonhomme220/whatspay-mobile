@@ -325,8 +325,8 @@ export default function MissionDetailPage() {
           </div>
         )}
 
-        {/* ── Stats conversion (campagnes conversion uniquement, après acceptation) ── */}
-        {t?.campaign_type === "conversion" && !isAssigned && mission.tracking_stats && (
+        {/* ── Stats de tracking : dès qu'un lien de tracking existe, quelle que soit la nature de la campagne ── */}
+        {!isAssigned && mission.tracking_stats && (
           <div className="bg-white rounded-2xl shadow-sm p-4">
             <p className="text-gray-500 text-[10px] font-bold uppercase tracking-widest mb-3 flex items-center gap-1.5">
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
