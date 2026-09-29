@@ -14,8 +14,12 @@ interface Task {
 interface Mission {
   id: string; status: string; expected_gain: number;
   vues: number | null; files: string | null;
+  response_date: string | null;
   task: Task | null;
 }
+
+// Doit rester identique à SUBMIT_WAIT_HOURS dans campagnes/[id]/page.tsx.
+const SUBMIT_WAIT_HOURS = 20;
 
 const RULES = [
   "Image claire et non floue",
@@ -60,6 +64,17 @@ export default function SoumettreProuvePage() {
   }, [id, router]);
 
   useEffect(() => { load(); }, [load]);
+
+  // Accès direct à l'URL avant les 20h d'attente (bouton normalement désactivé sur la
+  // fiche mission) → on renvoie plutôt que de laisser remplir un formulaire qui sera
+  // de toute façon rejeté par le backend.
+  useEffect(() => {
+    if (!mission || mission.status !== "PENDING" || !mission.response_date) return;
+    const unlockAt = new Date(mission.response_date).getTime() + SUBMIT_WAIT_HOURS * 3_600_000;
+    if (Date.now() < unlockAt) {
+      router.replace(`/campagnes/${id}`);
+    }
+  }, [mission, id, router]);
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0] ?? null;

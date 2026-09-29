@@ -35,6 +35,18 @@ function fmtDate(d: string | null, withTime = false) {
   return new Date(d).toLocaleDateString("fr-FR", opts);
 }
 
+// Délai minimum entre l'acceptation d'une mission et la soumission de la preuve —
+// laisse le temps au statut WhatsApp d'être réellement vu avant de le décompter.
+const SUBMIT_WAIT_HOURS = 20;
+
+function fmtCountdown(ms: number): string {
+  const totalMinutes = Math.max(0, Math.ceil(ms / 60000));
+  const h = Math.floor(totalMinutes / 60);
+  const m = totalMinutes % 60;
+  if (h <= 0) return `${m} min`;
+  return `${h} h ${m.toString().padStart(2, "0")} min`;
+}
+
 const STEPS = ["Assignée", "En cours", "Soumise", "Validée"];
 const STEP_STATUS: Record<string, number> = {
   ASSIGNED: 0, PENDING: 1, SUBMITED: 2,
@@ -75,6 +87,7 @@ export default function MissionDetailPage() {
   const [legendCopied, setLegendCopied] = useState(false);
   const [accepting, setAccepting] = useState(false);
   const [downloading, setDownloading] = useState(false);
+  const [now, setNow] = useState(() => Date.now());
 
   const load = useCallback(() => {
     api.get<Mission>(`/missions/${id}`)
@@ -84,6 +97,12 @@ export default function MissionDetailPage() {
   }, [id, router]);
 
   useEffect(() => { load(); }, [load]);
+
+  // Décompte avant que "Soumettre ma preuve" devienne cliquable (20h après acceptation).
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 30_000);
+    return () => clearInterval(t);
+  }, []);
 
   async function handleAccept() {
     setAccepting(true);
@@ -178,6 +197,12 @@ export default function MissionDetailPage() {
   const isPending    = mission.status === "PENDING";
   const isSubmited   = mission.status === "SUBMITED";
   const isDone       = mission.status === "SUBMISSION_ACCEPTED";
+
+  // "Soumettre ma preuve" ne devient cliquable que 20h après l'acceptation.
+  const acceptedAtMs   = mission.response_date ? new Date(mission.response_date).getTime() : null;
+  const submitUnlockMs = acceptedAtMs !== null ? acceptedAtMs + SUBMIT_WAIT_HOURS * 3_600_000 : null;
+  const submitRemainingMs = submitUnlockMs !== null ? submitUnlockMs - now : 0;
+  const canSubmitProof = submitUnlockMs === null || submitRemainingMs <= 0;
   const isRejected   = mission.status === "SUBMISSION_REJECTED";
   const isOnboarding = t?.is_onboarding ?? false;
   const isCivic      = t?.is_civic ?? false;
@@ -616,12 +641,26 @@ export default function MissionDetailPage() {
         </div>
       ) : isPending ? (
         <div className="fixed bottom-16 left-0 right-0 px-4 pb-2">
-          <Link
-            href={`/campagnes/${mission.id}/soumettre`}
-            className="block bg-green-600 text-white text-center font-semibold py-4 rounded-2xl shadow-lg text-sm"
-          >
-            Soumettre ma preuve
-          </Link>
+          {canSubmitProof ? (
+            <Link
+              href={`/campagnes/${mission.id}/soumettre`}
+              className="block bg-green-600 text-white text-center font-semibold py-4 rounded-2xl shadow-lg text-sm"
+            >
+              Soumettre ma preuve
+            </Link>
+          ) : (
+            <div>
+              <div
+                aria-disabled="true"
+                className="block bg-green-600/40 text-white/80 text-center font-semibold py-4 rounded-2xl shadow-lg text-sm cursor-not-allowed select-none"
+              >
+                Soumettre ma preuve
+              </div>
+              <p className="text-center text-xs text-gray-500 mt-1.5">
+                Disponible dans {fmtCountdown(submitRemainingMs)} — laisse le temps à ton statut d&apos;être vu.
+              </p>
+            </div>
+          )}
         </div>
       ) : isSubmited ? (
         <div className="fixed bottom-16 left-0 right-0 px-4 pb-2">
