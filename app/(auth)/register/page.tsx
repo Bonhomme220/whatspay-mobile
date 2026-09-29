@@ -95,15 +95,27 @@ export default function RegisterPage() {
   }, []);
 
   // Nom du parrain (affiché sous le champ « Vous êtes invité par … »).
+  // Statut de la vérification en direct : distingue "vide" de "code invalide" — avant, les
+  // deux cas affichaient le même texte neutre, et un code mal saisi n'était détecté qu'à la
+  // toute fin de l'inscription (validation backend "exists" au submit, étape 4).
   const [ambassadorName, setAmbassadorName] = useState<string | null>(null);
+  const [ambassadorStatus, setAmbassadorStatus] = useState<"idle" | "checking" | "found" | "invalid">("idle");
   useEffect(() => {
     const code = form.ambassador_code.trim();
-    if (!code) { setAmbassadorName(null); return; }
+    if (!code) { setAmbassadorName(null); setAmbassadorStatus("idle"); return; }
+    setAmbassadorStatus("checking");
     let cancelled = false;
     const t = setTimeout(() => {
       api.get<{ found: boolean; name: string | null }>(`/auth/ambassador-name/${encodeURIComponent(code)}`)
-        .then((r) => { if (!cancelled) setAmbassadorName(r.found ? r.name : null); })
-        .catch(() => { if (!cancelled) setAmbassadorName(null); });
+        .then((r) => {
+          if (cancelled) return;
+          setAmbassadorName(r.found ? r.name : null);
+          setAmbassadorStatus(r.found ? "found" : "invalid");
+          // Code pré-rempli via un lien de parrainage mais introuvable : on déverrouille le
+          // champ pour que l'utilisateur puisse le corriger ou le vider lui-même.
+          if (!r.found) setRefLocked(false);
+        })
+        .catch(() => { if (!cancelled) { setAmbassadorName(null); setAmbassadorStatus("idle"); } });
     }, 400);
     return () => { cancelled = true; clearTimeout(t); };
   }, [form.ambassador_code]);
@@ -198,6 +210,8 @@ export default function RegisterPage() {
         const age = (Date.now() - new Date(form.birthdate).getTime()) / (365.25 * 86400000);
         if (age < 16) errs.birthdate = "Vous devez avoir au moins 16 ans.";
       }
+      if (ambassadorStatus === "invalid") errs.ambassador_code = "Code ambassadeur invalide. Corrigez-le ou laissez le champ vide.";
+      else if (ambassadorStatus === "checking") errs.ambassador_code = "Vérification du code ambassadeur en cours…";
     }
     if (s === 1) {
       if (!form.country_id)                   errs.country_id                   = "Pays requis.";
@@ -338,15 +352,19 @@ export default function RegisterPage() {
                   readOnly={refLocked}
                   style={refLocked ? { backgroundColor: "#f3f4f6", cursor: "not-allowed" } : undefined}
                 />
-                {ambassadorName ? (
+                {ambassadorStatus === "found" ? (
                   <p className="text-xs mt-1.5 font-semibold" style={{ color: "#16a34a" }}>
-                    ✓ Vous êtes invité par {ambassadorName}
+                    ✓ {refLocked ? "Vous êtes parrainé par" : "Vous êtes invité par"} {ambassadorName}
+                  </p>
+                ) : ambassadorStatus === "checking" ? (
+                  <p className="text-xs mt-1.5 text-gray-400">Vérification du code…</p>
+                ) : ambassadorStatus === "invalid" ? (
+                  <p className="text-xs mt-1.5 font-semibold" style={{ color: "#dc2626" }}>
+                    ✕ Code ambassadeur invalide. Corrigez-le ou laissez le champ vide.
                   </p>
                 ) : (
-                  <p className="text-xs mt-1.5" style={{ color: refLocked ? "#16a34a" : "#6b7280" }}>
-                    {refLocked
-                      ? "✓ Vous êtes parrainé — le code du parrain est appliqué automatiquement."
-                      : "Un ambassadeur WhatsPay vous a-t-il invité ? Entrez son code ici. Sinon, laissez ce champ vide."}
+                  <p className="text-xs mt-1.5 text-gray-500">
+                    Un ambassadeur WhatsPay vous a-t-il invité ? Entrez son code ici. <strong>Ce champ reste libre si vous n&apos;en avez pas</strong> — laissez-le simplement vide.
                   </p>
                 )}
               </div>
