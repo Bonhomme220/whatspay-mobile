@@ -25,8 +25,7 @@ const instrumentSerif = Instrument_Serif({
 });
 
 const PLAY_STORE_URL = "https://play.google.com/store/apps/details?id=com.whatspay.native";
-// TODO: remplacer par le lien App Store réel dès qu'il est disponible.
-const APP_STORE_URL = "/login";
+const APP_STORE_URL = "https://apps.apple.com/us/app/whatspay/id6810247452";
 
 interface LandingStats {
   diffuseurs: string;
@@ -238,7 +237,7 @@ export default function Home() {
                 <div className="btn-store-name">Google Play</div>
               </div>
             </a>
-            <Link href={APP_STORE_URL} className="btn-store btn-store--ghost">
+            <a href={APP_STORE_URL} target="_blank" rel="noopener noreferrer" className="btn-store btn-store--ghost">
               <svg className="btn-store-ico" width="30" height="30" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11"/>
               </svg>
@@ -246,7 +245,7 @@ export default function Home() {
                 <div className="btn-store-lbl">Télécharger sur</div>
                 <div className="btn-store-name">App Store</div>
               </div>
-            </Link>
+            </a>
           </div>
           <Link href="/login" className="hero-login">
             Déjà diffuseur ou annonceur ? <strong>Se connecter</strong>
@@ -397,7 +396,7 @@ export default function Home() {
               <div className="btn-store-name">Google Play</div>
             </div>
           </a>
-          <Link href={APP_STORE_URL} className="btn-store btn-store--ghost">
+          <a href={APP_STORE_URL} target="_blank" rel="noopener noreferrer" className="btn-store btn-store--ghost">
             <svg className="btn-store-ico" width="28" height="28" viewBox="0 0 24 24" fill="currentColor">
               <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11"/>
             </svg>
@@ -405,7 +404,7 @@ export default function Home() {
               <div className="btn-store-lbl">Télécharger sur</div>
               <div className="btn-store-name">App Store</div>
             </div>
-          </Link>
+          </a>
         </div>
       </section>
 
@@ -427,7 +426,7 @@ export default function Home() {
                 <div className="btn-store-name">Google Play</div>
               </div>
             </a>
-            <Link href={APP_STORE_URL} className="btn-store btn-store--ghost">
+            <a href={APP_STORE_URL} target="_blank" rel="noopener noreferrer" className="btn-store btn-store--ghost">
               <svg className="btn-store-ico" width="26" height="26" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11"/>
               </svg>
@@ -435,7 +434,7 @@ export default function Home() {
                 <div className="btn-store-lbl">Télécharger sur</div>
                 <div className="btn-store-name">App Store</div>
               </div>
-            </Link>
+            </a>
           </div>
           <p className="fcta-note">Gratuit <span>·</span> Paiement Mobile Money <span>·</span> Sans abonnement</p>
           <p className="fcta-note">Vous êtes annonceur ? <a href="https://whatspay.africa" style={{ color: "var(--blanc)", textDecoration: "underline" }}>Découvrir la plateforme annonceur →</a></p>
