@@ -224,6 +224,24 @@ export default function MissionDetailPage() {
 
         <h1 className="text-white text-xl font-bold leading-tight">{t?.name ?? "—"}</h1>
         <p className="text-green-100 text-xs mt-0.5">Détails de la mission</p>
+        {!isOnboarding && !isCivic && t?.campaign_type && (
+          <div className="mt-2">
+            <span
+              className={`inline-flex items-center gap-1 text-[10px] font-bold px-2.5 py-1 rounded-full ${
+                t.campaign_type === "conversion"
+                  ? "bg-orange-400/25 text-orange-50 border border-orange-200/40"
+                  : "bg-white/15 text-white border border-white/25"
+              }`}
+            >
+              {t.campaign_type === "conversion" ? "🎯 Campagne conversion" : "📢 Campagne notoriété"}
+            </span>
+            <p className="text-green-100 text-[11px] mt-1.5 leading-snug max-w-[280px]">
+              {t.campaign_type === "conversion"
+                ? "Tu es payé par vue ET selon le nombre de clics générés. Partage le visuel et la légende sur plusieurs canaux (statut, groupes...) pour maximiser tes clics."
+                : "Tu es payé par vue uniquement. Publie simplement le visuel sur ton statut WhatsApp."}
+            </p>
+          </div>
+        )}
 
         {/* Quick stats */}
         <div className="flex gap-3 mt-4">
