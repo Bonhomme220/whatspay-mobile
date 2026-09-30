@@ -24,6 +24,11 @@ interface MissionsData {
   disponibles: Mission[]; en_cours: Mission[];
   terminees: Mission[]; gains_cumules: number;
 }
+interface RecaptureProfile {
+  status: "actif" | "inactif" | "off";
+  recapture_window_open: boolean;
+  recapture_needed: boolean;
+}
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 function fmtDate(d: string | null) {
@@ -101,6 +106,7 @@ export default function MediaPartnerMissionsPage() {
   const [data, setData]     = useState<MissionsData | null>(null);
   const [loading, setLoading]     = useState(true);
   const [accepting, setAccepting] = useState<string | null>(null);
+  const [recapture, setRecapture] = useState<RecaptureProfile | null>(null);
 
   const load = useCallback(() => {
     setLoading(true);
@@ -111,6 +117,12 @@ export default function MediaPartnerMissionsPage() {
   }, []);
 
   useEffect(() => { load(); }, [load]);
+
+  // Appel léger dédié (pas de cache partagé nécessaire ici) pour savoir si une
+  // bannière de rappel de recapture mensuelle doit s'afficher.
+  useEffect(() => {
+    api.get<RecaptureProfile>("/media-partner/profile").then(setRecapture).catch(() => {});
+  }, []);
 
   async function handleAccept(id: string) {
     setAccepting(id);
@@ -192,6 +204,13 @@ export default function MediaPartnerMissionsPage() {
           })}
         </div>
       </div>
+
+      {/* Rappel de recapture mensuelle */}
+      {recapture?.recapture_needed && (
+        <div className="px-4 pt-4">
+          <RecaptureBanner profile={recapture} />
+        </div>
+      )}
 
       {/* Content */}
       <div className="px-4 pt-4 pb-4">
@@ -378,6 +397,43 @@ function TermineeCard({ mission: m }: { mission: Mission }) {
           </div>
         </div>
       </div>
+    </Link>
+  );
+}
+
+// ── Bannière de rappel de recapture mensuelle ─────────────────────────────────
+function RecaptureBanner({ profile }: { profile: RecaptureProfile }) {
+  const urgent = profile.status === "inactif" || profile.status === "off";
+  const title = urgent
+    ? `Compte ${profile.status} — mettez à jour vos chiffres`
+    : profile.recapture_window_open
+      ? "La fenêtre de recapture est ouverte"
+      : "Mettez à jour les chiffres de votre chaîne";
+  const subtitle = urgent
+    ? "Une recapture valide réactive votre compte automatiquement."
+    : profile.recapture_window_open
+      ? "Soumettez vos chiffres du mois avant la fermeture de la fenêtre (5-10 du mois)."
+      : "Vous pouvez déjà soumettre vos chiffres par anticipation.";
+
+  return (
+    <Link
+      href="/media-partner/recapture"
+      className={`flex items-center gap-3 rounded-2xl px-4 py-3.5 shadow-sm border mb-1 ${
+        urgent ? "bg-orange-50 border-orange-100" : "bg-white border-gray-50"
+      }`}
+    >
+      <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${urgent ? "bg-orange-100" : "bg-green-100"}`}>
+        <svg className={`w-5 h-5 ${urgent ? "text-orange-600" : "text-green-600"}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 17v-2a4 4 0 014-4h3m0 0l-3-3m3 3l-3 3M5 5h14a1 1 0 011 1v12a1 1 0 01-1 1H5a1 1 0 01-1-1V6a1 1 0 011-1z" />
+        </svg>
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className={`text-sm font-semibold ${urgent ? "text-orange-700" : "text-gray-800"}`}>📋 {title}</p>
+        <p className={`text-xs mt-0.5 ${urgent ? "text-orange-600" : "text-gray-500"}`}>{subtitle}</p>
+      </div>
+      <svg className="w-4 h-4 text-gray-300 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+      </svg>
     </Link>
   );
 }
