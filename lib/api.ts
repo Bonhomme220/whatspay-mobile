@@ -24,8 +24,11 @@ export const userStore = {
 };
 
 // Route d'accueil selon le rôle du compte connecté.
-export const homeRouteForProfil = (profil?: string | null): string =>
-  profil === "ANNONCEUR" ? "/annonceur/dashboard" : "/dashboard";
+export const homeRouteForProfil = (profil?: string | null): string => {
+  if (profil === "ANNONCEUR") return "/annonceur/dashboard";
+  if (profil === "PARTENAIRE_MEDIA") return "/media-partner/missions";
+  return "/dashboard";
+};
 
 // ── Core request ───────────────────────────────────────────────────────────────
 async function request<T>(method: string, url: string, body?: unknown): Promise<T> {

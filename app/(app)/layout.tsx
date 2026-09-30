@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { tokenStore, userStore } from "@/lib/api";
+import { tokenStore, userStore, homeRouteForProfil } from "@/lib/api";
 import { AppProvider, useApp } from "@/contexts/AppContext";
 import Sidebar from "@/components/Sidebar";
 import NotificationBell from "@/components/NotificationBell";
@@ -33,9 +33,11 @@ function Inner({ children }: { children: React.ReactNode }) {
       window.location.replace("/login");
       return;
     }
-    // Garde de rôle : un annonceur ne doit pas voir l'espace diffuseur.
-    if (userStore.get()?.profil === "ANNONCEUR") {
-      window.location.replace("/annonceur/dashboard");
+    // Garde de rôle : un annonceur ou un partenaire média ne doit pas voir l'espace diffuseur
+    // (comptes séparés, pas de lien entre eux).
+    const profil = userStore.get()?.profil;
+    if (profil === "ANNONCEUR" || profil === "PARTENAIRE_MEDIA") {
+      window.location.replace(homeRouteForProfil(profil));
     }
   }, []);
 
