@@ -26,7 +26,7 @@ export const userStore = {
 // Route d'accueil selon le rôle du compte connecté.
 export const homeRouteForProfil = (profil?: string | null): string => {
   if (profil === "ANNONCEUR") return "/annonceur/dashboard";
-  if (profil === "PARTENAIRE_MEDIA") return "/media-partner/missions";
+  if (profil === "PARTENAIRE_MEDIA") return "/media-partner/dashboard";
   return "/dashboard";
 };
 
