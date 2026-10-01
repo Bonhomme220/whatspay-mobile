@@ -15,6 +15,8 @@ interface MissionsStats { total: number; in_progress: number; completed: number;
 interface DashboardData {
   channel_name: string;
   status: "actif" | "inactif" | "off";
+  onboarding_status: "pending" | "approved" | "rejected";
+  rejection_reason: string | null;
   current_tier: CurrentTier | null;
   reached_accounts_30d: number;
   consecutive_missed_recaptures: number;
@@ -82,6 +84,26 @@ export default function MediaPartnerDashboardPage() {
 
   return (
     <div className="bg-gray-50 min-h-screen">
+
+      {/* ── Bannière validation d'inscription ── */}
+      {data.onboarding_status === "pending" && (
+        <div className="bg-amber-50 border-b border-amber-100 px-5 py-3 flex items-start gap-2.5">
+          <span className="text-amber-500 text-lg leading-none mt-0.5">⏳</span>
+          <div>
+            <p className="text-amber-800 text-sm font-semibold">Inscription en attente de validation</p>
+            <p className="text-amber-700 text-xs mt-0.5">Votre chaîne sera activée dès que notre équipe aura vérifié votre dossier. Vous serez notifié(e) dès la validation.</p>
+          </div>
+        </div>
+      )}
+      {data.onboarding_status === "rejected" && (
+        <div className="bg-red-50 border-b border-red-100 px-5 py-3 flex items-start gap-2.5">
+          <span className="text-red-500 text-lg leading-none mt-0.5">✕</span>
+          <div>
+            <p className="text-red-800 text-sm font-semibold">Inscription non validée</p>
+            {data.rejection_reason && <p className="text-red-700 text-xs mt-0.5">{data.rejection_reason}</p>}
+          </div>
+        </div>
+      )}
 
       {/* ── Hero ── */}
       <div className="bg-green-600 px-5 pt-5 pb-14">

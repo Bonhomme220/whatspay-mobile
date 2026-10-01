@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { api, auth, StoredUser } from "@/lib/api";
 import Image from "next/image";
 
@@ -14,17 +15,19 @@ interface FormData {
   phone: string; phonecountry_id: string; country_id: string;
   password: string; password_confirmation: string;
   channel_name: string; channel_link: string; account_type: string;
-  channel_category_id: string; channel_category_secondary_id: string;
+  channel_category_id: string;
   lang_id: string; publish_frequency: string;
   followers_count: string; reached_accounts_30d: string; payment_method_id: string;
 }
+
+const MAX_SECONDARY_CATEGORIES = 3;
 
 const EMPTY: FormData = {
   firstname: "", lastname: "", email: "",
   phone: "", phonecountry_id: "", country_id: "",
   password: "", password_confirmation: "",
   channel_name: "", channel_link: "", account_type: "",
-  channel_category_id: "", channel_category_secondary_id: "",
+  channel_category_id: "",
   lang_id: "", publish_frequency: "",
   followers_count: "", reached_accounts_30d: "", payment_method_id: "",
 };
@@ -50,10 +53,10 @@ const STEP_FIELDS: string[][] = [
   ["firstname", "lastname", "email", "phone", "country_id", "phonecountry_id"],
   ["password", "password_confirmation"],
   ["channel_name", "channel_link", "account_type"],
-  ["channel_category_id", "channel_category_secondary_id", "lang_id", "publish_frequency"],
+  ["channel_category_id", "channel_category_secondary_ids", "lang_id", "publish_frequency"],
   ["followers_count", "reached_accounts_30d", "payment_method_id"],
   ["country_coverage"],
-  ["screenshot_channel_page", "screenshot_couverture", "screenshot_followers"],
+  ["screenshot_channel_page", "screenshot_couverture", "screenshot_followers", "screenshot_admin_page"],
 ];
 
 const STEPS = ["Identité", "Sécurité", "Chaîne", "Catégories", "Audience", "Couverture", "Documents"];
@@ -134,11 +137,13 @@ function FileField({ label, file, error, onChange }: { label: string; file: File
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 export default function RegisterMediaPartnerPage() {
+  const router = useRouter();
   const [step, setStep] = useState(0);
   const [form, setForm] = useState<FormData>(EMPTY);
+  const [secondaryCategoryIds, setSecondaryCategoryIds] = useState<string[]>([]);
   const [coverage, setCoverage] = useState<CoverageRow[]>([{ country_id: "", percentage: "" }]);
-  const [files, setFiles] = useState<{ screenshot_channel_page: File | null; screenshot_couverture: File | null; screenshot_followers: File | null }>({
-    screenshot_channel_page: null, screenshot_couverture: null, screenshot_followers: null,
+  const [files, setFiles] = useState<{ screenshot_channel_page: File | null; screenshot_couverture: File | null; screenshot_followers: File | null; screenshot_admin_page: File | null }>({
+    screenshot_channel_page: null, screenshot_couverture: null, screenshot_followers: null, screenshot_admin_page: null,
   });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -167,6 +172,19 @@ export default function RegisterMediaPartnerPage() {
 
   function set<K extends keyof FormData>(k: K, v: FormData[K]) {
     setForm((f) => ({ ...f, [k]: v }));
+  }
+
+  function onPrincipalCategoryChange(v: string) {
+    set("channel_category_id", v);
+    setSecondaryCategoryIds((ids) => ids.filter((id) => id !== v));
+  }
+
+  function toggleSecondaryCategory(id: string) {
+    setSecondaryCategoryIds((ids) => {
+      if (ids.includes(id)) return ids.filter((x) => x !== id);
+      if (ids.length >= MAX_SECONDARY_CATEGORIES) return ids;
+      return [...ids, id];
+    });
   }
 
   // Pays de résidence → indicatif téléphonique par défaut (même comportement que le
@@ -241,6 +259,7 @@ export default function RegisterMediaPartnerPage() {
       if (!files.screenshot_channel_page) errs.screenshot_channel_page = "Capture requise.";
       if (!files.screenshot_couverture)   errs.screenshot_couverture   = "Capture requise.";
       if (!files.screenshot_followers)    errs.screenshot_followers    = "Capture requise.";
+      if (!files.screenshot_admin_page)   errs.screenshot_admin_page   = "Capture requise.";
     }
     return errs;
   }
@@ -274,7 +293,7 @@ export default function RegisterMediaPartnerPage() {
       fd.append("channel_link", form.channel_link);
       fd.append("account_type", form.account_type);
       fd.append("channel_category_id", form.channel_category_id);
-      if (form.channel_category_secondary_id) fd.append("channel_category_secondary_id", form.channel_category_secondary_id);
+      secondaryCategoryIds.forEach((id) => fd.append("channel_category_secondary_ids[]", id));
       fd.append("lang_id", form.lang_id);
       fd.append("publish_frequency", form.publish_frequency);
       fd.append("followers_count", form.followers_count);
@@ -287,6 +306,7 @@ export default function RegisterMediaPartnerPage() {
       if (files.screenshot_channel_page) fd.append("screenshot_channel_page", files.screenshot_channel_page);
       if (files.screenshot_couverture)   fd.append("screenshot_couverture", files.screenshot_couverture);
       if (files.screenshot_followers)    fd.append("screenshot_followers", files.screenshot_followers);
+      if (files.screenshot_admin_page)   fd.append("screenshot_admin_page", files.screenshot_admin_page);
 
       const res = await api.postForm<{ message?: string; token?: string; profil?: string; user?: StoredUser }>(
         "/auth/register-media-partner",
@@ -295,6 +315,8 @@ export default function RegisterMediaPartnerPage() {
 
       if (res?.token && res?.user) {
         auth.applySession({ token: res.token, profil: res.profil ?? "PARTENAIRE_MEDIA", user: res.user });
+        router.replace("/media-partner/dashboard");
+        return;
       }
       setSuccessMsg(res?.message || "Inscription réussie. Votre profil de chaîne est en attente de validation par notre équipe.");
     } catch (err: any) {
@@ -449,14 +471,34 @@ export default function RegisterMediaPartnerPage() {
           {/* ── Étape 3 : Catégories & langue ── */}
           {step === 3 && (
             <>
-              <Select label="Catégorie principale" value={form.channel_category_id} onChange={(e) => { set("channel_category_id", e.target.value); setFe((f) => ({ ...f, channel_category_id: "" })); }} error={fe.channel_category_id}>
+              <Select label="Catégorie principale" value={form.channel_category_id} onChange={(e) => { onPrincipalCategoryChange(e.target.value); setFe((f) => ({ ...f, channel_category_id: "" })); }} error={fe.channel_category_id}>
                 <option value="">Sélectionnez une catégorie</option>
                 {channelCategories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
               </Select>
-              <Select label="Catégorie secondaire (facultatif)" value={form.channel_category_secondary_id} onChange={(e) => set("channel_category_secondary_id", e.target.value)}>
-                <option value="">Aucune</option>
-                {channelCategories.filter((c) => c.id !== form.channel_category_id).map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-              </Select>
+              <div>
+                <label className="block text-gray-700 text-sm font-medium mb-1.5">
+                  Catégories secondaires (facultatif, {secondaryCategoryIds.length}/{MAX_SECONDARY_CATEGORIES})
+                </label>
+                <div className="rounded-lg border border-gray-200 max-h-44 overflow-y-auto divide-y divide-gray-100" style={{ backgroundColor: "rgba(43,94,94,0.1)" }}>
+                  {channelCategories.filter((c) => c.id !== form.channel_category_id).map((c) => {
+                    const checked = secondaryCategoryIds.includes(c.id);
+                    const disabled = !checked && secondaryCategoryIds.length >= MAX_SECONDARY_CATEGORIES;
+                    return (
+                      <label key={c.id} className={`flex items-center gap-2 px-3 py-2.5 text-sm ${disabled ? "opacity-40" : "cursor-pointer"}`}>
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          disabled={disabled}
+                          onChange={() => toggleSecondaryCategory(c.id)}
+                          className="w-4 h-4 accent-green-600"
+                        />
+                        <span className="text-gray-700">{c.name}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+                <p className="text-gray-400 text-xs mt-1">Jusqu'à {MAX_SECONDARY_CATEGORIES} thématiques secondaires.</p>
+              </div>
               <Select label="Langue de diffusion" value={form.lang_id} onChange={(e) => { set("lang_id", e.target.value); setFe((f) => ({ ...f, lang_id: "" })); }} error={fe.lang_id}>
                 <option value="">Sélectionnez une langue</option>
                 {langs.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
@@ -569,6 +611,12 @@ export default function RegisterMediaPartnerPage() {
                 file={files.screenshot_followers}
                 error={fe.screenshot_followers}
                 onChange={(f) => { setFiles((s) => ({ ...s, screenshot_followers: f })); setFe((fe0) => ({ ...fe0, screenshot_followers: "" })); }}
+              />
+              <FileField
+                label="Étape 7 — Capture de la page Admin de votre chaîne"
+                file={files.screenshot_admin_page}
+                error={fe.screenshot_admin_page}
+                onChange={(f) => { setFiles((s) => ({ ...s, screenshot_admin_page: f })); setFe((fe0) => ({ ...fe0, screenshot_admin_page: "" })); }}
               />
             </>
           )}
