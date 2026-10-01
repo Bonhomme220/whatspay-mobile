@@ -37,7 +37,7 @@ function fmtDate(d: string | null, withTime = false) {
 
 // Délai minimum entre l'acceptation d'une mission et la soumission de la preuve —
 // laisse le temps au statut WhatsApp d'être réellement vu avant de le décompter.
-const SUBMIT_WAIT_HOURS = 20;
+const SUBMIT_WAIT_HOURS = 12;
 
 function fmtCountdown(ms: number): string {
   const totalMinutes = Math.max(0, Math.ceil(ms / 60000));
@@ -98,7 +98,7 @@ export default function MissionDetailPage() {
 
   useEffect(() => { load(); }, [load]);
 
-  // Décompte avant que "Soumettre ma preuve" devienne cliquable (20h après acceptation).
+  // Décompte avant que "Soumettre ma preuve" devienne cliquable (12h après acceptation).
   useEffect(() => {
     const t = setInterval(() => setNow(Date.now()), 30_000);
     return () => clearInterval(t);
@@ -198,7 +198,7 @@ export default function MissionDetailPage() {
   const isSubmited   = mission.status === "SUBMITED";
   const isDone       = mission.status === "SUBMISSION_ACCEPTED";
 
-  // "Soumettre ma preuve" ne devient cliquable que 20h après l'acceptation.
+  // "Soumettre ma preuve" ne devient cliquable que 12h après l'acceptation.
   const acceptedAtMs   = mission.response_date ? new Date(mission.response_date).getTime() : null;
   const submitUnlockMs = acceptedAtMs !== null ? acceptedAtMs + SUBMIT_WAIT_HOURS * 3_600_000 : null;
   const submitRemainingMs = submitUnlockMs !== null ? submitUnlockMs - now : 0;

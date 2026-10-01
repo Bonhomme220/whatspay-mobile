@@ -65,7 +65,7 @@ export default function SoumettreProuvePage() {
 
   useEffect(() => { load(); }, [load]);
 
-  // Accès direct à l'URL avant les 20h d'attente (bouton normalement désactivé sur la
+  // Accès direct à l'URL avant les 12h d'attente (bouton normalement désactivé sur la
   // fiche mission) → on renvoie plutôt que de laisser remplir un formulaire qui sera
   // de toute façon rejeté par le backend.
   useEffect(() => {
