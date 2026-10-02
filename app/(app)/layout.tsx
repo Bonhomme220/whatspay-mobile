@@ -14,6 +14,7 @@ import NudgeModal from "@/components/NudgeModal";
 import ProfileReviewBanner from "@/components/ProfileReviewBanner";
 import KycBanner from "@/components/KycBanner";
 import LocationUpdateModal from "@/components/LocationUpdateModal";
+import JoinWhatsAppChannelGate from "@/components/JoinWhatsAppChannelGate";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
 
 function Inner({ children }: { children: React.ReactNode }) {
@@ -24,6 +25,7 @@ function Inner({ children }: { children: React.ReactNode }) {
     profileNeedsReview,
     needsLocationUpdate, userLocalityId, markLocationUpdated,
     nudgeModal, dismissNudgeModal,
+    pendingWhatsAppStep, completeWhatsAppStep,
   } = useApp();
 
   useEffect(() => {
@@ -42,6 +44,11 @@ function Inner({ children }: { children: React.ReactNode }) {
   }, []);
 
   usePushNotifications();
+
+  // Priorité absolue : rien d'autre ne s'affiche tant que l'étape n'est pas complétée.
+  if (pendingWhatsAppStep) {
+    return <JoinWhatsAppChannelGate onDone={completeWhatsAppStep} />;
+  }
 
   const navItems = [
     { href: "/dashboard", label: "Accueil",   icon: <IconHome /> },

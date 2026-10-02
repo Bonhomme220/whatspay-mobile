@@ -49,6 +49,10 @@ interface AppCtx {
   nudgeBanners: Nudge[];
   dismissNudgeModal: () => void;
   dismissNudgeBanner: (id: string) => void;
+  // Étape obligatoire "Rejoindre le canal WhatsApp" posée juste après une inscription
+  // diffuseur — priorité absolue, pas d'échappatoire (décision founder 2026-10-02).
+  pendingWhatsAppStep: boolean;
+  completeWhatsAppStep: () => void;
 }
 
 const Ctx = createContext<AppCtx>({
@@ -69,7 +73,11 @@ const Ctx = createContext<AppCtx>({
   nudgeBanners: [],
   dismissNudgeModal: () => {},
   dismissNudgeBanner: () => {},
+  pendingWhatsAppStep: false,
+  completeWhatsAppStep: () => {},
 });
+
+const WHATSAPP_STEP_KEY = "wp_pending_whatsapp_step";
 
 // ── API response types ─────────────────────────────────────────────────────────
 
@@ -102,6 +110,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [needsLocationUpdate, setNeedsLocationUpdate] = useState(false);
   const [userLocalityId, setUserLocalityId] = useState<string | null>(null);
   const [profileIncomplete, setProfileIncomplete] = useState(false);
+  const [pendingWhatsAppStep, setPendingWhatsAppStep] = useState(false);
 
   // Nudge state
   const [nudgeModal, setNudgeModal] = useState<Nudge | null>(null);
@@ -161,6 +170,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const stored = userStore.get();
     if (stored?.firstname) setUser(stored);
 
+    if (typeof localStorage !== "undefined" && localStorage.getItem(WHATSAPP_STEP_KEY) === "1") {
+      setPendingWhatsAppStep(true);
+    }
+
     // Vérification au démarrage
     checkSession();
 
@@ -195,6 +208,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setNeedsLocationUpdate(false);
   }
 
+  function completeWhatsAppStep() {
+    setPendingWhatsAppStep(false);
+    try { localStorage.removeItem(WHATSAPP_STEP_KEY); } catch {}
+    api.post("/whatsapp-channel/joined", {}).catch(() => {});
+  }
+
   function dismissNudgeModal() {
     if (nudgeModal?.id === 'incident_june_2026') {
       api.post('/incident/acknowledge', {}).catch(() => {});
@@ -227,6 +246,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       nudgeBanners: visibleBanners,
       dismissNudgeModal,
       dismissNudgeBanner,
+      pendingWhatsAppStep,
+      completeWhatsAppStep,
     }}>
       {children}
     </Ctx.Provider>

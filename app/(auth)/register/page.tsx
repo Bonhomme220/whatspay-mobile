@@ -281,6 +281,9 @@ export default function RegisterPage() {
       // Vérification bypassée : le backend renvoie un token → connexion directe.
       if (res?.token && res?.user) {
         auth.applySession({ token: res.token, profil: res.profil ?? "DIFFUSEUR", user: res.user });
+        // Étape obligatoire "Rejoindre le canal WhatsApp" interceptée par (app)/layout.tsx
+        // avant tout accès au dashboard — pas d'échappatoire (décision founder 2026-10-02).
+        localStorage.setItem("wp_pending_whatsapp_step", "1");
         router.replace("/dashboard");
         return;
       }

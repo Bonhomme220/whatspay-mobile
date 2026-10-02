@@ -95,6 +95,9 @@ function VerifyAccountForm() {
 
       tokenStore.set(data.token);
       userStore.set({ ...data.user, profil: data.profil });
+      // Étape obligatoire "Rejoindre le canal WhatsApp" interceptée par (app)/layout.tsx
+      // avant tout accès au dashboard — pas d'échappatoire (décision founder 2026-10-02).
+      localStorage.setItem("wp_pending_whatsapp_step", "1");
       router.push("/dashboard");
     } catch (err: any) {
       setError(err?.message ?? "Code invalide ou expiré.");
