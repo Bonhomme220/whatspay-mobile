@@ -3,6 +3,9 @@
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
+import Pagination from "@/components/Pagination";
+
+const PAGE_SIZE = 10;
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 interface Transaction {
@@ -53,6 +56,7 @@ export default function GainsPage() {
   const [data, setData]         = useState<GainsData | null>(null);
   const [loading, setLoading]   = useState(true);
   const [filter, setFilter]     = useState<Filter>("tous");
+  const [page, setPage] = useState(1);
   const [refreshing, setRefreshing] = useState(false);
   const [showWithdraw, setShowWithdraw] = useState(false);
   const [detailTx, setDetailTx] = useState<Transaction | null>(null);
@@ -72,6 +76,8 @@ export default function GainsPage() {
     filter === "gains"    ? transactions.filter((t) => t.type === "Crédit") :
     filter === "retraits" ? transactions.filter((t) => t.type !== "Crédit") :
     transactions;
+  const pageItems = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const changeFilter = (f: Filter) => { setFilter(f); setPage(1); };
 
   if (loading) return (
     <div className="flex items-center justify-center h-64">
@@ -176,7 +182,7 @@ export default function GainsPage() {
           {(["tous", "gains", "retraits"] as Filter[]).map((f) => (
             <button
               key={f}
-              onClick={() => setFilter(f)}
+              onClick={() => changeFilter(f)}
               className={`px-3 py-1 rounded-full text-xs font-semibold capitalize transition-colors ${
                 filter === f ? "bg-green-600 text-white" : "bg-gray-100 text-gray-500"
               }`}
@@ -193,7 +199,7 @@ export default function GainsPage() {
           </div>
         ) : (
           <div className="divide-y divide-gray-50">
-            {filtered.map((t) => {
+            {pageItems.map((t) => {
               const isCredit = t.type === "Crédit";
               return (
                 <button
@@ -233,6 +239,7 @@ export default function GainsPage() {
             })}
           </div>
         )}
+        <Pagination page={page} totalItems={filtered.length} onChange={setPage} />
       </div>
 
       {/* ── Feuille de détails d'une transaction ── */}

@@ -2,6 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
+import Pagination from "@/components/Pagination";
+
+const PAGE_SIZE = 10;
 
 interface AmbassadorData {
   is_ambassador: boolean;
@@ -30,6 +33,8 @@ export default function AmbassadeurPage() {
   const [activating, setActivating]       = useState(false);
   const [activateError, setActivateError] = useState<string | null>(null);
   const [kycVerifyUrl, setKycVerifyUrl]   = useState<string | null>(null);
+  const [refSearch, setRefSearch] = useState("");
+  const [refPage, setRefPage] = useState(1);
 
   useEffect(() => {
     api.get<AmbassadorData>("/ambassador")
@@ -277,31 +282,61 @@ export default function AmbassadeurPage() {
         })()}
 
         {/* Liste filleuls */}
-        {data.is_ambassador && (
-          <div className="bg-white rounded-2xl shadow-sm p-4">
-            <p className="text-gray-500 text-[10px] font-bold uppercase tracking-widest mb-3">
-              Mes filleuls ({data.referrals.length})
-            </p>
-            {data.referrals.length === 0 ? (
-              <p className="text-gray-400 text-sm text-center py-4">Aucun filleul pour l'instant.</p>
-            ) : (
-              <div className="space-y-2">
-                {data.referrals.map((r) => (
-                  <div key={r.id} className="flex items-center justify-between py-2 border-b border-gray-50 last:border-0">
-                    <div>
-                      <p className="text-gray-700 text-sm font-medium">{r.name}</p>
-                      <p className="text-gray-400 text-[10px]">Inscrit le {fmtDate(r.joined_at)}</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-green-700 text-sm font-bold">{r.missions}</p>
-                      <p className="text-gray-400 text-[10px]">missions</p>
-                    </div>
+        {data.is_ambassador && (() => {
+          const q = refSearch.trim().toLowerCase();
+          const filteredRefs = q ? data.referrals.filter((r) => r.name.toLowerCase().includes(q)) : data.referrals;
+          const pageRefs = filteredRefs.slice((refPage - 1) * PAGE_SIZE, refPage * PAGE_SIZE);
+          return (
+            <div className="bg-white rounded-2xl shadow-sm p-4">
+              <p className="text-gray-500 text-[10px] font-bold uppercase tracking-widest mb-3">
+                Mes filleuls ({data.referrals.length})
+              </p>
+              {data.referrals.length > 0 && (
+                <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-xl px-3 h-10 mb-3">
+                  <svg className="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M17 11a6 6 0 11-12 0 6 6 0 0112 0z" />
+                  </svg>
+                  <input
+                    value={refSearch}
+                    onChange={(e) => { setRefSearch(e.target.value); setRefPage(1); }}
+                    placeholder="Rechercher un filleul…"
+                    className="flex-1 bg-transparent text-sm text-gray-800 placeholder-gray-400 outline-none"
+                  />
+                  {!!refSearch && (
+                    <button onClick={() => { setRefSearch(""); setRefPage(1); }} className="text-gray-400">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  )}
+                </div>
+              )}
+              {filteredRefs.length === 0 ? (
+                <p className="text-gray-400 text-sm text-center py-4">
+                  {data.referrals.length === 0 ? "Aucun filleul pour l'instant." : "Aucun filleul ne correspond à cette recherche."}
+                </p>
+              ) : (
+                <>
+                  <div className="space-y-2">
+                    {pageRefs.map((r) => (
+                      <div key={r.id} className="flex items-center justify-between py-2 border-b border-gray-50 last:border-0">
+                        <div>
+                          <p className="text-gray-700 text-sm font-medium">{r.name}</p>
+                          <p className="text-gray-400 text-[10px]">Inscrit le {fmtDate(r.joined_at)}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-green-700 text-sm font-bold">{r.missions}</p>
+                          <p className="text-gray-400 text-[10px]">missions</p>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
+                  <Pagination page={refPage} totalItems={filteredRefs.length} onChange={setRefPage} />
+                </>
+              )}
+            </div>
+          );
+        })()}
 
       </div>
     </div>

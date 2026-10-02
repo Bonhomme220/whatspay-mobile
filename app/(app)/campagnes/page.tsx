@@ -1,10 +1,21 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { api } from "@/lib/api";
 import GreenTopBar from "@/components/GreenTopBar";
+import Pagination from "@/components/Pagination";
+
+const PAGE_SIZE = 10;
+type TermStatus = "tous" | "SUBMITED" | "SUBMISSION_ACCEPTED" | "SUBMISSION_REJECTED" | "EXPIRED";
+const TERM_STATUS_OPTIONS: { key: TermStatus; label: string }[] = [
+  { key: "tous", label: "Tous" },
+  { key: "SUBMISSION_ACCEPTED", label: "Terminée" },
+  { key: "SUBMITED", label: "Soumise" },
+  { key: "SUBMISSION_REJECTED", label: "Rejetée" },
+  { key: "EXPIRED", label: "Expirée" },
+];
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 interface Task {
@@ -67,6 +78,11 @@ export default function CampagnesPage() {
   const [data, setData]     = useState<MissionsData | null>(null);
   const [loading, setLoading]   = useState(true);
   const [accepting, setAccepting] = useState<string | null>(null);
+  const [page, setPage] = useState<Record<Tab, number>>({ disponibles: 1, en_cours: 1, terminees: 1 });
+  const [termStatus, setTermStatus] = useState<TermStatus>("tous");
+  const [termFrom, setTermFrom] = useState("");
+  const [termTo, setTermTo] = useState("");
+  const [termSearch, setTermSearch] = useState("");
 
   const load = useCallback(() => {
     setLoading(true);
@@ -94,6 +110,30 @@ export default function CampagnesPage() {
   const counts = data
     ? { disponibles: data.disponibles.length, en_cours: data.en_cours.length, terminees: data.terminees.length }
     : { disponibles: 0, en_cours: 0, terminees: 0 };
+
+  const filteredTerminees = useMemo(() => {
+    const list = data?.terminees ?? [];
+    const q = termSearch.trim().toLowerCase();
+    const from = termFrom ? new Date(termFrom).getTime() : null;
+    const to = termTo ? new Date(termTo).getTime() + 86_400_000 - 1 : null; // fin de journée incluse
+    return list.filter((m) => {
+      if (termStatus !== "tous" && m.status !== termStatus) return false;
+      if (q && !(m.task?.name ?? "").toLowerCase().includes(q)) return false;
+      if (from !== null || to !== null) {
+        const d = m.submission_date ?? m.response_date ?? m.assignment_date;
+        const t = d ? new Date(d).getTime() : null;
+        if (t === null) return false;
+        if (from !== null && t < from) return false;
+        if (to !== null && t > to) return false;
+      }
+      return true;
+    });
+  }, [data?.terminees, termStatus, termFrom, termTo, termSearch]);
+
+  const resetTermFilters = () => {
+    setTermStatus("tous"); setTermFrom(""); setTermTo(""); setTermSearch("");
+    setPage((p) => ({ ...p, terminees: 1 }));
+  };
 
   const TABS: { key: Tab; label: string }[] = [
     { key: "disponibles", label: "Disponibles" },
@@ -162,13 +202,37 @@ export default function CampagnesPage() {
         ) : !data ? null : (
           <>
             {tab === "disponibles" && (
-              <DisponiblesTab missions={data.disponibles} onAccept={handleAccept} accepting={accepting} />
+              <DisponiblesTab
+                missions={data.disponibles}
+                onAccept={handleAccept}
+                accepting={accepting}
+                page={page.disponibles}
+                onPageChange={(p) => setPage((prev) => ({ ...prev, disponibles: p }))}
+              />
             )}
             {tab === "en_cours" && (
-              <EnCoursTab missions={data.en_cours} />
+              <EnCoursTab
+                missions={data.en_cours}
+                page={page.en_cours}
+                onPageChange={(p) => setPage((prev) => ({ ...prev, en_cours: p }))}
+              />
             )}
             {tab === "terminees" && (
-              <TermineesTab missions={data.terminees} gainsCumules={data.gains_cumules} />
+              <TermineesTab
+                missions={filteredTerminees}
+                gainsCumules={data.gains_cumules}
+                page={page.terminees}
+                onPageChange={(p) => setPage((prev) => ({ ...prev, terminees: p }))}
+                termStatus={termStatus}
+                onTermStatusChange={(s) => { setTermStatus(s); setPage((p) => ({ ...p, terminees: 1 })); }}
+                termFrom={termFrom}
+                onTermFromChange={(v) => { setTermFrom(v); setPage((p) => ({ ...p, terminees: 1 })); }}
+                termTo={termTo}
+                onTermToChange={(v) => { setTermTo(v); setPage((p) => ({ ...p, terminees: 1 })); }}
+                termSearch={termSearch}
+                onTermSearchChange={(v) => { setTermSearch(v); setPage((p) => ({ ...p, terminees: 1 })); }}
+                onResetFilters={resetTermFilters}
+              />
             )}
           </>
         )}
@@ -186,11 +250,14 @@ function TabIcon({ tab, active }: { tab: Tab; active: boolean }) {
 }
 
 // ── Disponibles ────────────────────────────────────────────────────────────────
-function DisponiblesTab({ missions, onAccept, accepting }: {
+function DisponiblesTab({ missions, onAccept, accepting, page, onPageChange }: {
   missions: Mission[]; onAccept: (id: string) => void; accepting: string | null;
+  page: number; onPageChange: (p: number) => void;
 }) {
   if (!missions.length)
     return <EmptyState text="Aucune mission disponible pour le moment." />;
+
+  const pageItems = missions.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   return (
     <div className="space-y-1">
@@ -201,9 +268,10 @@ function DisponiblesTab({ missions, onAccept, accepting }: {
         <p className="text-blue-700 text-xs">Rejoignez une mission avant sa date limite pour gagner des FCFA.</p>
       </div>
 
-      {missions.map((m) => (
+      {pageItems.map((m) => (
         <DispoCard key={m.id} mission={m} onAccept={onAccept} accepting={accepting} />
       ))}
+      <Pagination page={page} totalItems={missions.length} onChange={onPageChange} />
     </div>
   );
 }
@@ -267,15 +335,18 @@ function DispoCard({ mission: m, onAccept, accepting }: {
 }
 
 // ── En cours ───────────────────────────────────────────────────────────────────
-function EnCoursTab({ missions }: { missions: Mission[] }) {
+function EnCoursTab({ missions, page, onPageChange }: { missions: Mission[]; page: number; onPageChange: (p: number) => void }) {
   if (!missions.length)
     return <EmptyState text="Aucune mission en cours." />;
 
+  const pageItems = missions.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
   return (
     <div className="space-y-3">
-      {missions.map((m) => (
+      {pageItems.map((m) => (
         <EnCoursCard key={m.id} mission={m} />
       ))}
+      <Pagination page={page} totalItems={missions.length} onChange={onPageChange} />
     </div>
   );
 }
@@ -330,9 +401,20 @@ function EnCoursCard({ mission: m }: { mission: Mission }) {
 }
 
 // ── Terminées ──────────────────────────────────────────────────────────────────
-function TermineesTab({ missions, gainsCumules }: { missions: Mission[]; gainsCumules: number }) {
-  if (!missions.length)
-    return <EmptyState text="Aucune mission terminée." />;
+function TermineesTab({
+  missions, gainsCumules, page, onPageChange,
+  termStatus, onTermStatusChange, termFrom, onTermFromChange, termTo, onTermToChange,
+  termSearch, onTermSearchChange, onResetFilters,
+}: {
+  missions: Mission[]; gainsCumules: number; page: number; onPageChange: (p: number) => void;
+  termStatus: TermStatus; onTermStatusChange: (s: TermStatus) => void;
+  termFrom: string; onTermFromChange: (v: string) => void;
+  termTo: string; onTermToChange: (v: string) => void;
+  termSearch: string; onTermSearchChange: (v: string) => void;
+  onResetFilters: () => void;
+}) {
+  const pageItems = missions.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const hasActiveFilters = termStatus !== "tous" || !!termFrom || !!termTo || !!termSearch;
 
   return (
     <div>
@@ -349,11 +431,77 @@ function TermineesTab({ missions, gainsCumules }: { missions: Mission[]; gainsCu
         </div>
       </div>
 
-      <div className="space-y-0 divide-y divide-gray-100">
-        {missions.map((m) => (
-          <TermineeCard key={m.id} mission={m} />
-        ))}
+      {/* Filtres : statut, période, recherche */}
+      <div className="bg-white rounded-2xl p-3 shadow-sm mb-4 space-y-2.5">
+        <div className="flex flex-wrap gap-1.5">
+          {TERM_STATUS_OPTIONS.map((o) => (
+            <button
+              key={o.key}
+              onClick={() => onTermStatusChange(o.key)}
+              className={`px-2.5 py-1.5 rounded-full text-[10px] font-bold ${
+                termStatus === o.key ? "bg-green-600 text-white" : "bg-gray-100 text-gray-500"
+              }`}
+            >
+              {o.label}
+            </button>
+          ))}
+        </div>
+        <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-xl px-3 h-10">
+          <svg className="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M17 11a6 6 0 11-12 0 6 6 0 0112 0z" />
+          </svg>
+          <input
+            value={termSearch}
+            onChange={(e) => onTermSearchChange(e.target.value)}
+            placeholder="Rechercher une campagne…"
+            className="flex-1 bg-transparent text-sm text-gray-800 placeholder-gray-400 outline-none"
+          />
+          {!!termSearch && (
+            <button onClick={() => onTermSearchChange("")} className="text-gray-400">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          )}
+        </div>
+        <div className="flex gap-2">
+          <input
+            type="date"
+            value={termFrom}
+            onChange={(e) => onTermFromChange(e.target.value)}
+            max={new Date().toISOString().slice(0, 10)}
+            className="flex-1 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-xs text-gray-700 outline-none"
+          />
+          <input
+            type="date"
+            value={termTo}
+            onChange={(e) => onTermToChange(e.target.value)}
+            max={new Date().toISOString().slice(0, 10)}
+            className="flex-1 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-xs text-gray-700 outline-none"
+          />
+        </div>
+        {hasActiveFilters && (
+          <button onClick={onResetFilters} className="text-green-600 text-xs font-semibold flex items-center gap-1">
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            Réinitialiser les filtres
+          </button>
+        )}
       </div>
+
+      {!missions.length ? (
+        <EmptyState text="Aucune mission terminée pour ces critères." />
+      ) : (
+        <>
+          <div className="space-y-0 divide-y divide-gray-100">
+            {pageItems.map((m) => (
+              <TermineeCard key={m.id} mission={m} />
+            ))}
+          </div>
+          <Pagination page={page} totalItems={missions.length} onChange={onPageChange} />
+        </>
+      )}
     </div>
   );
 }
