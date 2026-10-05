@@ -9,6 +9,7 @@ import NotificationBell from "@/components/NotificationBell";
 import PwaInstallBanner from "@/components/PwaInstallBanner";
 import KycBanner from "@/components/KycBanner";
 import MediaPartnerSidebar from "@/components/MediaPartnerSidebar";
+import { usePushNotifications } from "@/hooks/usePushNotifications";
 
 // Bottom nav : 4 sections primaires (les autres — FAQ, Tickets, Mes chiffres — vivent
 // dans le hamburger MediaPartnerSidebar, comme la répartition bottom-nav/Sidebar du diffuseur).
@@ -39,6 +40,8 @@ export default function MediaPartnerLayout({ children }: { children: React.React
       window.location.replace(homeRouteForProfil(profil));
     }
   }, []);
+
+  usePushNotifications();
 
   async function handleLogout() {
     await auth.logout();

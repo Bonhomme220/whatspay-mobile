@@ -17,6 +17,7 @@ const NAV = [
   { href: "/media-partner/missions",   label: "Missions",        icon: <IcoMega /> },
   { href: "/media-partner/recapture",  label: "Mes Chiffres",    icon: <IcoChart /> },
   { href: "/media-partner/wallet",     label: "Mes Gains",       icon: <IcoWallet /> },
+  { href: "/media-partner/baremes",    label: "Barème des paliers", icon: <IcoScale /> },
   { href: "/media-partner/profil",     label: "Mon Profil",      icon: <IcoUser /> },
   { href: "/media-partner/faq",        label: "FAQ",             icon: <IcoHelp /> },
   { href: "/media-partner/tickets",    label: "Mes Tickets",     icon: <IcoTicket /> },
@@ -120,3 +121,4 @@ function IcoWallet() { return <svg className={s} fill="none" stroke="currentColo
 function IcoUser()   { return <svg className={s} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>; }
 function IcoHelp()   { return <svg className={s} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>; }
 function IcoTicket() { return <svg className={s} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" /></svg>; }
+function IcoScale()  { return <svg className={s} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M12 3v18M5 7l-3 6a3 3 0 006 0l-3-6zm14 0l-3 6a3 3 0 006 0l-3-6zM5 7h14M9 21h6" /></svg>; }
