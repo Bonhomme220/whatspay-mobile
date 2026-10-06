@@ -30,6 +30,14 @@ messaging.onBackgroundMessage((payload) => {
     data:  payload.data ?? {},
   });
 });
+
+// Tap sur la notif OS (app fermée/arrière-plan) — ouvre l'URL pertinente (ex: KYC) plutôt
+// que le comportement par défaut (focus sur l'onglet existant sans navigation).
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const url = event.notification.data?.verify_url || "/";
+  event.waitUntil(self.clients.openWindow(url));
+});
 `;
 
   return new NextResponse(sw, {

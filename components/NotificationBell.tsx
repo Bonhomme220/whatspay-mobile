@@ -75,6 +75,12 @@ export default function NotificationBell() {
     try { await api.patch(`/notifications/${id}/read`, {}); } catch {}
   }
 
+  function handlePress(n: Notif) {
+    handleMarkRead(n.id);
+    const verifyUrl = n.data?.verify_url;
+    if (verifyUrl) window.location.href = verifyUrl;
+  }
+
   return (
     <div className="relative" ref={panelRef}>
       {/* Bell button */}
@@ -123,7 +129,7 @@ export default function NotificationBell() {
             ) : notifs.map((n) => (
               <button
                 key={n.id}
-                onClick={() => handleMarkRead(n.id)}
+                onClick={() => handlePress(n)}
                 className={`w-full text-left px-4 py-3 border-b border-gray-50 last:border-0 flex gap-3 items-start transition-colors ${n.is_read ? "bg-white" : "bg-green-50"}`}
               >
                 <div className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${n.is_read ? "bg-transparent" : "bg-green-500"}`} />
