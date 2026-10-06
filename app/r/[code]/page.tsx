@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
+import { openAppOrFallback } from "@/lib/appLink";
 
 const PLAY_STORE_BASE = "https://play.google.com/store/apps/details?id=com.whatspay.native";
 const APP_STORE_URL = "https://apps.apple.com/us/app/whatspay/id6810247452";
@@ -18,12 +19,16 @@ function detectPlatform(): Platform {
 }
 
 /**
- * Lien de parrainage court (whatspay.africa/r/CODE, partagé depuis la page Ambassadeur).
- * Pas d'Install Referrer Android ni de SDK tiers (Branch/AppsFlyer) : le presse-papiers est
- * le seul mécanisme cross-plateforme pour relayer le code après l'installation — l'app native
- * le relit une seule fois au premier lancement (src/lib/ambassadorReferral.ts) et pré-remplit
- * l'inscription. L'écriture presse-papiers doit se faire dans le geste de clic (Safari la
- * refuse sinon) : pas de redirection auto, on exige un tap.
+ * Lien de parrainage court (app.whatspay.africa/r/CODE, partagé depuis la page Ambassadeur).
+ *
+ * Si l'app est déjà installée : ouverte directement (whatspay://r/CODE — pas d'Universal Links
+ * iOS configurés, donc pas d'autre mécanisme sur cette plateforme ; sur Android, les App Links
+ * interceptent déjà la plupart des cas avant même que cette page charge). Sinon : store, avec
+ * le code mémorisé (presse-papiers — pas d'Install Referrer Android ni de SDK tiers type
+ * Branch/AppsFlyer) pour pré-remplissage à l'inscription après installation.
+ *
+ * L'écriture presse-papiers doit se faire dans le geste de clic (Safari la refuse sinon) :
+ * pas de redirection auto, on exige un tap.
  */
 export default function ReferralPage() {
   const params = useParams();
@@ -43,13 +48,21 @@ export default function ReferralPage() {
       // quand même : le code reste pré-remplissable manuellement, l'inscription n'est jamais bloquée.
     }
 
-    if (platform === "android") {
-      window.location.href = `${PLAY_STORE_BASE}&referrer=${encodeURIComponent(`ambassador_code=${code}`)}`;
-    } else if (platform === "ios") {
-      window.location.href = APP_STORE_URL;
-    } else {
-      router.push(`/register?ref=${encodeURIComponent(code)}`);
+    const toStoreOrWeb = () => {
+      if (platform === "android") {
+        window.location.href = `${PLAY_STORE_BASE}&referrer=${encodeURIComponent(`ambassador_code=${code}`)}`;
+      } else if (platform === "ios") {
+        window.location.href = APP_STORE_URL;
+      } else {
+        router.push(`/register?ref=${encodeURIComponent(code)}`);
+      }
+    };
+
+    if (platform === "other") {
+      toStoreOrWeb();
+      return;
     }
+    openAppOrFallback(`r/${encodeURIComponent(code)}`, toStoreOrWeb);
   }
 
   if (platform === null) {

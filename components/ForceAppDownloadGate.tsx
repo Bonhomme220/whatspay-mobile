@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
+import { openAppOrFallback } from "@/lib/appLink";
 
 const PLAY_STORE_URL = "https://play.google.com/store/apps/details?id=com.whatspay.native";
 const APP_STORE_URL = "https://apps.apple.com/us/app/whatspay/id6810247452";
@@ -18,10 +19,12 @@ function detectPlatform(): Platform {
 
 /**
  * Gate bloquant, sans échappatoire, rendu en priorité absolue sur TOUT l'espace diffuseur
- * (app)/layout.tsx — décision founder : la PWA diffuseur n'est plus la destination finale,
- * on renvoie systématiquement vers l'app native (Play Store / App Store selon l'appareil).
- * Contrairement à pendingWhatsAppStep, il n'y a pas de drapeau "fait" : il s'affiche à chaque
- * connexion / chargement de l'espace, pas une seule fois.
+ * (app)/layout.tsx — décision founder : la PWA diffuseur n'est plus la destination finale.
+ * Si l'app est déjà installée, on l'ouvre directement (whatspay:// — pas d'Universal Links
+ * iOS configurés, donc pas d'autre mécanisme sur cette plateforme ; sur Android, les App
+ * Links interceptent déjà la plupart des cas avant même que cette page charge) ; sinon, Play
+ * Store / App Store selon l'appareil. Contrairement à pendingWhatsAppStep, il n'y a pas de
+ * drapeau "fait" : il s'affiche à chaque connexion / chargement de l'espace, pas une seule fois.
  */
 export default function ForceAppDownloadGate() {
   const [platform, setPlatform] = useState<Platform | null>(null);
@@ -29,8 +32,8 @@ export default function ForceAppDownloadGate() {
   useEffect(() => {
     const p = detectPlatform();
     setPlatform(p);
-    if (p === "android") window.location.href = PLAY_STORE_URL;
-    else if (p === "ios") window.location.href = APP_STORE_URL;
+    if (p === "android") openAppOrFallback("", () => { window.location.href = PLAY_STORE_URL; });
+    else if (p === "ios") openAppOrFallback("", () => { window.location.href = APP_STORE_URL; });
   }, []);
 
   if (platform === null) return <div className="fixed inset-0 z-50 bg-white" />;
