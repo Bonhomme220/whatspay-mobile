@@ -15,6 +15,7 @@ export default function ForgotPasswordPage() {
   const [countryId, setCountryId] = useState("");
   const [local, setLocal]         = useState("");
   const [birthdate, setBirthdate] = useState("");
+  const [email, setEmail]         = useState("");
   const [loading, setLoading]     = useState(false);
   const [error, setError]         = useState("");
 
@@ -44,7 +45,7 @@ export default function ForgotPasswordPage() {
       const phone = `${code}${isBenin ? "01" : ""}${onlyDigits(local)}`;
       const res = await api.post<{ token: string; firstname?: string }>(
         "/auth/reset-verify-identity",
-        { phone, birthdate }
+        { phone, birthdate, email: email.trim() }
       );
       const params = new URLSearchParams({ token: res.token });
       if (res.firstname) params.set("name", res.firstname);
@@ -74,7 +75,7 @@ export default function ForgotPasswordPage() {
         <h3 className="text-gray-800 text-lg font-semibold mb-1">Mot de passe oublié</h3>
         <p className="text-gray-500 text-sm mb-5">
           Confirmez votre identité pour réinitialiser votre mot de passe. Renseignez votre numéro de
-          téléphone et votre date de naissance, exactement comme lors de votre inscription.
+          téléphone, votre date de naissance et votre adresse email, exactement comme lors de votre inscription.
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -123,6 +124,20 @@ export default function ForgotPasswordPage() {
               value={birthdate}
               onChange={(e) => setBirthdate(e.target.value)}
               max={new Date().toISOString().split("T")[0]}
+              className="w-full rounded-lg border border-gray-200 px-3 py-3 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:border-green-500 transition"
+              style={{ backgroundColor: "rgba(43,94,94,0.1)" }}
+            />
+          </div>
+
+          <div>
+            <label className="block text-gray-700 text-sm font-medium mb-1.5">Adresse email</label>
+            <input
+              type="email"
+              required
+              autoComplete="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="votre.email@exemple.com"
               className="w-full rounded-lg border border-gray-200 px-3 py-3 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:border-green-500 transition"
               style={{ backgroundColor: "rgba(43,94,94,0.1)" }}
             />
