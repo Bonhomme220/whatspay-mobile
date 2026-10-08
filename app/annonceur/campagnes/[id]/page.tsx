@@ -9,6 +9,7 @@ interface Campaign {
   id: string; name: string; description: string | null; status: string;
   files: string | null; media_type: string | null; legend: string | null; url: string | null;
   startdate: string | null; enddate: string | null; view_price: number; created_at: string;
+  rejection_reason?: string | null;
 }
 interface Progress {
   total_days: number | null; elapsed_days: number; remaining_days: number;
@@ -87,10 +88,16 @@ export default function CampagneDetailPage() {
         </div>
       )}
 
+      {c.status === "REJECTED" && (
+        <div className="mx-4 mt-4 bg-red-50 border border-red-100 rounded-xl px-3.5 py-3 text-sm text-red-700">
+          <b>Campagne non validée.</b> Motif : {c.rejection_reason || "non précisé"}
+        </div>
+      )}
+
       {/* KPIs principaux */}
       <div className="px-4 mt-4 grid grid-cols-2 gap-3">
         <Kpi color="green"  value={fmt(k.vues_obtenues)} label="Vues obtenues" sub={`objectif ${fmt(k.objectif_total)}`} />
-        <Kpi color="indigo" value={fmt(k.portee)} label="Diffuseurs" sub="portée réelle" />
+        <Kpi color="indigo" value={fmt(k.portee)} label="Portée" sub="assignations" />
         <Kpi color="gray"   value={fmtCompact(k.budget_consomme) + " F"} label="Budget consommé" sub={`${k.cout_par_vue} F / vue`} />
         <Kpi color="amber"  value={k.data_confidence !== null ? k.data_confidence + " %" : "—"} label="Fiabilité données" sub="soumissions validées" />
       </div>

@@ -6,8 +6,9 @@ import { api } from "@/lib/api";
 import { fmt } from "@/lib/annonceur";
 import MultiSelect, { type Option } from "@/components/annonceur/MultiSelect";
 
-const VIEW_PRICE = 3.5;      // F / vue (aligné backend)
-const MIN_PER_DAY = 2500;    // budget minimum par jour
+const VIEW_PRICE = 1.2;          // F / vue — prix plateforme (CampaignMetrics::defaultViewPrice côté serveur)
+const MIN_VIEWS_PER_DAY = 3000;  // minimum 3 000 vues PAR JOUR (vérifié aussi côté serveur)
+const MIN_PER_DAY = MIN_VIEWS_PER_DAY * VIEW_PRICE; // budget minimum par jour
 
 type MediaType = "image" | "video" | "image_link" | "video_link";
 
@@ -191,7 +192,7 @@ export default function NouvelleCampagnePage() {
           </div>
           {nbDays > 0 && (
             <p className="text-xs text-gray-500 mt-2">
-              {nbDays} jour(s) · budget minimum <b>{fmt(minBudget)} F</b>
+              {nbDays} jour(s) · budget minimum <b>{fmt(minBudget)} F</b> ({fmt(MIN_VIEWS_PER_DAY)} vues/jour à {VIEW_PRICE} F/vue)
             </p>
           )}
         </Section>
@@ -202,7 +203,7 @@ export default function NouvelleCampagnePage() {
           {budgetNum > 0 && (
             <div className="mt-2 bg-green-50 rounded-lg p-3">
               <p className="text-sm text-green-800 font-semibold">≈ {fmt(estimatedViews)} vues visées</p>
-              <p className="text-xs text-green-600">à {VIEW_PRICE} F / vue</p>
+              <p className="text-xs text-green-600">à {VIEW_PRICE} F / vue · budget réservé sur votre portefeuille à la validation, part non consommée remboursée à la clôture</p>
               {budgetNum < minBudget && (
                 <p className="text-xs text-red-500 mt-1">Budget sous le minimum ({fmt(minBudget)} F).</p>
               )}
