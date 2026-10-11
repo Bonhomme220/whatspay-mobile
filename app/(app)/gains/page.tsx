@@ -25,6 +25,19 @@ interface PendingWithdrawal {
   status: string;
   created_at: string;
 }
+/** Option de retrait Cashless (null si la fonctionnalité est désactivée côté serveur). */
+interface CashlessOption {
+  enabled: boolean;
+  status: string | null;
+  ready: boolean;
+  consent_given: boolean;
+  cashtag: string | null;
+  kyc_verified: boolean;
+  eligible: boolean;
+  message: string | null;
+  logos: { cashless: string; mobile_money: string };
+  delays: { cashless: string; mobile_money: string };
+}
 interface GainsData {
   balance: number;
   total_gain: number;
@@ -36,6 +49,7 @@ interface GainsData {
   par_vue: number;
   pending_withdrawal: PendingWithdrawal | null;
   transactions: Transaction[];
+  cashless?: CashlessOption | null;
 }
 
 type Filter = "tous" | "gains" | "retraits";
@@ -253,6 +267,7 @@ export default function GainsPage() {
           balance={data.balance}
           hasPending={hasPending}
           pendingAmount={data.pending_withdrawal?.amount}
+          cashless={data.cashless ?? null}
           onClose={() => setShowWithdraw(false)}
           onSuccess={() => { setShowWithdraw(false); load(true); }}
         />
@@ -263,13 +278,20 @@ export default function GainsPage() {
 }
 
 // ── WithdrawModal ──────────────────────────────────────────────────────────────
-function WithdrawModal({ balance, hasPending, pendingAmount, onClose, onSuccess }: {
+function WithdrawModal({ balance, hasPending, pendingAmount, cashless: initialCashless, onClose, onSuccess }: {
   balance: number;
   hasPending: boolean;
   pendingAmount?: number;
+  cashless: CashlessOption | null;
   onClose: () => void;
   onSuccess: () => void;
 }) {
+  const [cashless, setCashless] = useState<CashlessOption | null>(initialCashless);
+  const cashlessOn = !!cashless?.enabled;
+  const [method, setMethod] = useState<"cashless" | "mobile_money">(initialCashless?.ready ? "cashless" : "mobile_money");
+  const [consentBusy, setConsentBusy] = useState(false);
+  const viaCashless = method === "cashless" && cashlessOn;
+  const cashlessBlocked = viaCashless && !cashless?.ready;
   const [amount, setAmount]   = useState("");
   const [phone, setPhone]     = useState("");
   const [submitting, setSub]  = useState(false);
@@ -311,11 +333,9 @@ function WithdrawModal({ balance, hasPending, pendingAmount, onClose, onSuccess 
     setError(null);
     setSub(true);
     try {
-      const res = await api.post<{ success: boolean; message: string; has_pending?: boolean }>("/withdraw", {
-        amount: parseFloat(amount),
-        withdrawal_method: "mobile_money",
-        phone: phone.replace(/\D/g, ""),
-      });
+      const res = await api.post<{ success: boolean; message: string; has_pending?: boolean }>("/withdraw", viaCashless
+        ? { amount: parseFloat(amount), withdrawal_method: "cashless" }
+        : { amount: parseFloat(amount), withdrawal_method: "mobile_money", phone: phone.replace(/\D/g, "") });
       if (res.success) {
         setSuccess(res.message);
         setTimeout(onSuccess, 3000);
@@ -333,9 +353,26 @@ function WithdrawModal({ balance, hasPending, pendingAmount, onClose, onSuccess 
     }
   }
 
+  // Consentement : ouverture du compte Cashless (transmission des informations d'identité).
+  async function activateCashless() {
+    setError(null);
+    setConsentBusy(true);
+    try {
+      const res = await api.post<{ success: boolean; cashless: CashlessOption }>("/cashless/consent", {});
+      if (res.cashless) {
+        setCashless(res.cashless);
+        if (res.cashless.ready) setMethod("cashless");
+      }
+    } catch (err: unknown) {
+      setError((err as { message?: string })?.message ?? "Une erreur est survenue.");
+    } finally {
+      setConsentBusy(false);
+    }
+  }
+
   return (
     <div className="fixed inset-0 z-50 flex items-end" style={{ background: "rgba(0,0,0,0.5)" }} onClick={onClose}>
-      <div className="w-full bg-white rounded-t-3xl px-5 pt-6 pb-10" onClick={(e) => e.stopPropagation()}>
+      <div className="w-full bg-white rounded-t-3xl px-5 pt-6 pb-10 max-h-[92vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
         <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-5" />
 
         <h2 className="text-gray-800 font-bold text-lg mb-1">Demande de retrait</h2>
@@ -390,23 +427,54 @@ function WithdrawModal({ balance, hasPending, pendingAmount, onClose, onSuccess 
               </p>
             </div>
 
-            <div>
-              <label className="text-gray-500 text-xs font-semibold uppercase tracking-wide block mb-1.5">
-                Numéro Mobile Money
-              </label>
-              <input
-                type="tel"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                placeholder="Ex. 97000000"
-                required
-                className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-green-400"
-              />
-            </div>
+            {cashlessOn && cashless && (
+              <div>
+                <label className="text-gray-500 text-xs font-semibold uppercase tracking-wide block mb-1.5">
+                  Recevoir mon argent sur
+                </label>
+                <div className="grid grid-cols-2 gap-2.5">
+                  <MethodCard selected={method === "cashless"} onClick={() => { setMethod("cashless"); setError(null); }}
+                    title="Cashless" logo={cashless.logos.cashless} delay={cashless.delays.cashless} highlight />
+                  <MethodCard selected={method === "mobile_money"} onClick={() => { setMethod("mobile_money"); setError(null); }}
+                    title="Mobile Money" logo={cashless.logos.mobile_money} delay={cashless.delays.mobile_money} />
+                </div>
+              </div>
+            )}
+
+            {viaCashless ? (
+              <div className="space-y-2">
+                {cashless?.message && <p className="text-gray-600 text-xs leading-relaxed">{cashless.message}</p>}
+                {!cashless?.ready && cashless?.kyc_verified && !cashless?.consent_given && cashless?.eligible && (
+                  <>
+                    <p className="text-gray-400 text-[11px] leading-snug">
+                      En activant Cashless, j&apos;accepte que WhatsPAY transmette mes informations d&apos;identité à Cashless pour ouvrir mon portefeuille.
+                    </p>
+                    <button type="button" onClick={activateCashless} disabled={consentBusy}
+                      className="w-full py-3 border-2 border-green-600 text-green-700 font-semibold rounded-2xl text-sm disabled:opacity-60">
+                      {consentBusy ? "Activation…" : "Activer mon compte Cashless"}
+                    </button>
+                  </>
+                )}
+              </div>
+            ) : (
+              <div>
+                <label className="text-gray-500 text-xs font-semibold uppercase tracking-wide block mb-1.5">
+                  Numéro Mobile Money
+                </label>
+                <input
+                  type="tel"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  placeholder="Ex. 97000000"
+                  required
+                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-green-400"
+                />
+              </div>
+            )}
 
             <button
               type="submit"
-              disabled={submitting}
+              disabled={submitting || cashlessBlocked}
               className="w-full py-4 bg-green-600 text-white font-semibold rounded-2xl text-sm disabled:opacity-60 flex items-center justify-center gap-2"
             >
               {submitting && (
@@ -418,6 +486,21 @@ function WithdrawModal({ balance, hasPending, pendingAmount, onClose, onSuccess 
         )}
       </div>
     </div>
+  );
+}
+
+// ── MethodCard : choix du mode de retrait (logo + délai) ─────────────────────────
+function MethodCard({ selected, onClick, title, logo, delay, highlight }: {
+  selected: boolean; onClick: () => void; title: string; logo: string; delay: string; highlight?: boolean;
+}) {
+  return (
+    <button type="button" onClick={onClick}
+      className={`flex flex-col items-center gap-1 rounded-2xl border-2 px-2 py-3 transition-colors ${selected ? "border-green-600 bg-green-50" : "border-gray-200 bg-white"}`}>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={logo} alt="" className="w-11 h-11 rounded-xl object-contain" />
+      <span className={`text-sm font-bold ${selected ? "text-green-700" : "text-gray-800"}`}>{title}</span>
+      <span className={`text-[11px] text-center ${highlight ? "text-green-700 font-semibold" : "text-gray-500"}`}>{delay}</span>
+    </button>
   );
 }
 
