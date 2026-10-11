@@ -50,7 +50,7 @@ export default function KycBanner() {
         <div className="w-9 h-9 rounded-xl bg-amber-100 flex items-center justify-center flex-shrink-0 text-lg">✏️</div>
         <div className="min-w-0 flex-1">
           <p className="font-bold text-amber-800 text-sm">Vérification à corriger</p>
-          <p className="text-amber-700 text-xs mt-0.5">
+          <p className="text-amber-700 text-xs mt-0.5 whitespace-pre-line">
             {state.reason ? state.reason : "Une information doit être corrigée."} Corrige et renvoie ta pièce.
           </p>
         </div>
@@ -66,7 +66,7 @@ export default function KycBanner() {
         <div className="w-9 h-9 rounded-xl bg-amber-100 flex items-center justify-center flex-shrink-0 text-lg">⏳</div>
         <div className="min-w-0">
           <p className="font-bold text-amber-800 text-sm">Vérification d'identité en cours</p>
-          <p className="text-amber-700 text-xs mt-0.5">Nous examinons ta pièce. Aucune action nécessaire.</p>
+          <p className="text-amber-700 text-xs mt-0.5 whitespace-pre-line">Nous examinons ta pièce. Aucune action nécessaire.</p>
         </div>
       </div>
     );

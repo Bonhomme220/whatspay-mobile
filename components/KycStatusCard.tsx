@@ -69,7 +69,7 @@ export default function KycStatusCard() {
       <div className={`w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 text-lg ${cfg.ico}`}>{cfg.ic}</div>
       <div className="min-w-0 flex-1">
         <p className={`font-bold text-sm ${cfg.title}`}>{cfg.t}</p>
-        <p className="text-gray-500 text-xs mt-0.5">{subText}</p>
+        <p className="text-gray-500 text-xs mt-0.5 whitespace-pre-line">{subText}</p>
       </div>
       {actionable && (
         <span className="text-xs font-bold text-green-600 flex-shrink-0">Vérifier ›</span>
