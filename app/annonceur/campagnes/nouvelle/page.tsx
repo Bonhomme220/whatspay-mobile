@@ -18,7 +18,9 @@ export default function NouvelleCampagnePage() {
   const router = useRouter();
 
   // Référentiels
-  const [localities, setLocalities] = useState<Option[]>([]);
+  const [localities, setLocalities] = useState<(Option & { country_id?: string | number })[]>([]);
+  const [countries, setCountries] = useState<Option[]>([]);
+  const [selCountries, setSelCountries] = useState<string[]>([]);
   const [occupations, setOccupations] = useState<Option[]>([]);
   const [categories, setCategories] = useState<Option[]>([]);
 
@@ -46,8 +48,23 @@ export default function NouvelleCampagnePage() {
   useEffect(() => {
     api.get<Option[]>("/categories").then(setCategories).catch(() => {});
     api.get<Option[]>("/occupations").then(setOccupations).catch(() => {});
-    api.get<{ data: Option[] }>("/localities").then((r) => setLocalities(r.data ?? [])).catch(() => {});
+    api.get<{ data: (Option & { country_id?: string | number })[] }>("/localities").then((r) => setLocalities(r.data ?? [])).catch(() => {});
+    api.get<{ id: string | number; name: string }[]>("/countries")
+      .then((r) => setCountries((r ?? []).map((c) => ({ id: String(c.id), name: c.name }))))
+      .catch(() => {});
   }, []);
+
+  // Filtre pays : ne propose que les localités des pays choisis (tous si aucun pays coché).
+  const localityOptions = useMemo(
+    () => (selCountries.length ? localities.filter((l) => selCountries.includes(String(l.country_id))) : localities),
+    [localities, selCountries],
+  );
+  // Pays décoché → on retire les localités de ce pays déjà sélectionnées.
+  useEffect(() => {
+    if (!selCountries.length) return;
+    const allowed = new Set(localityOptions.map((l) => String(l.id)));
+    setSelLoc((prev) => prev.filter((id) => allowed.has(String(id))));
+  }, [selCountries, localityOptions]);
 
   // Estimation d'audience (débounce) selon le ciblage
   useEffect(() => {
@@ -213,7 +230,10 @@ export default function NouvelleCampagnePage() {
 
         {/* CIBLAGE */}
         <Section title="Ciblage">
-          <MultiSelect label="Localités" options={localities} selected={selLoc} onChange={setSelLoc} required />
+          <MultiSelect label="Pays (filtre les localités)" options={countries} selected={selCountries} onChange={setSelCountries} />
+          <div className="mt-3">
+            <MultiSelect label="Localités" options={localityOptions} selected={selLoc} onChange={setSelLoc} required />
+          </div>
           <div className="mt-3">
             <MultiSelect label="Professions" options={occupations} selected={selOcc} onChange={setSelOcc} required />
           </div>
