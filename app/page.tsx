@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Bricolage_Grotesque, Manrope, Instrument_Serif } from "next/font/google";
 import Image from "next/image";
 import Link from "next/link";
+import Script from "next/script";
 import { tokenStore, userStore, homeRouteForProfil } from "@/lib/api";
 
 const bricolage = Bricolage_Grotesque({
@@ -74,6 +75,15 @@ export default function Home() {
 
   return (
     <div className={`${bricolage.variable} ${manrope.variable} ${instrumentSerif.variable} lp`}>
+      {/* Google tag (gtag.js) — compte Google Ads AW-745504657 */}
+      <Script src="https://www.googletagmanager.com/gtag/js?id=AW-745504657" strategy="afterInteractive" />
+      <Script id="google-ads-gtag" strategy="afterInteractive">
+        {`window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag('js', new Date());
+
+gtag('config', 'AW-745504657');`}
+      </Script>
       <style>{`
         .lp {
           --vert: #00A53C; --vert-l: #00C247; --vert-d: #006622; --vert-xd: #003d14;
