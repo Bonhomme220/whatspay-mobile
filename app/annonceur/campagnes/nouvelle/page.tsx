@@ -54,6 +54,12 @@ export default function NouvelleCampagnePage() {
       .catch(() => {});
   }, []);
 
+  // Seuls les pays qui ont des localités ciblables (l'API pays renvoie le monde entier).
+  const countryOptions = useMemo(() => {
+    const withLocalities = new Set(localities.map((l) => String(l.country_id)));
+    return countries.filter((c) => withLocalities.has(String(c.id)));
+  }, [countries, localities]);
+
   // Filtre pays : ne propose que les localités des pays choisis (tous si aucun pays coché).
   const localityOptions = useMemo(
     () => (selCountries.length ? localities.filter((l) => selCountries.includes(String(l.country_id))) : localities),
@@ -230,7 +236,7 @@ export default function NouvelleCampagnePage() {
 
         {/* CIBLAGE */}
         <Section title="Ciblage">
-          <MultiSelect label="Pays (filtre les localités)" options={countries} selected={selCountries} onChange={setSelCountries} />
+          <MultiSelect label="Pays (filtre les localités)" options={countryOptions} selected={selCountries} onChange={setSelCountries} />
           <div className="mt-3">
             <MultiSelect label="Localités" options={localityOptions} selected={selLoc} onChange={setSelLoc} required />
           </div>
