@@ -24,6 +24,9 @@ interface PendingWithdrawal {
   amount: number;
   status: string;
   created_at: string;
+  phone?: string | null;
+  /** Retrait renvoyé par l'équipe : numéro Mobile Money à corriger (jamais le montant). */
+  correction?: { reason: string | null; requested_at: string | null } | null;
 }
 /** Option de retrait Cashless (null si la fonctionnalité est désactivée côté serveur). */
 interface CashlessOption {
@@ -167,8 +170,13 @@ export default function GainsPage() {
         </div>
       </div>
 
+      {/* ── Retrait renvoyé pour correction du numéro ── */}
+      {hasPending && data.pending_withdrawal!.correction && (
+        <WithdrawalCorrection pending={data.pending_withdrawal!} onDone={() => load(true)} />
+      )}
+
       {/* ── Bannière retrait en cours ── */}
-      {hasPending && (
+      {hasPending && !data.pending_withdrawal!.correction && (
         <div className="mx-4 -mt-3 mb-3 relative z-10">
           <div className="bg-amber-50 border border-amber-200 rounded-2xl px-4 py-3 flex items-start gap-3">
             <div className="w-8 h-8 rounded-xl bg-amber-100 flex items-center justify-center flex-shrink-0 mt-0.5">
@@ -273,6 +281,61 @@ export default function GainsPage() {
         />
       )}
 
+    </div>
+  );
+}
+
+// ── WithdrawalCorrection : le diffuseur corrige son numéro Mobile Money ─────────────
+function WithdrawalCorrection({ pending, onDone }: { pending: PendingWithdrawal; onDone: () => void }) {
+  const [phone, setPhone] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [ok, setOk] = useState<string | null>(null);
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    setError(null);
+    const digits = phone.replace(/\D/g, "");
+    if (digits.length < 8 || digits.length > 15) { setError("Numéro Mobile Money invalide."); return; }
+    setBusy(true);
+    try {
+      const res = await api.post<{ success: boolean; message: string }>(`/withdraw/${pending.id}/correct`, { phone: digits });
+      if (res.success) { setOk(res.message); setTimeout(onDone, 1500); }
+      else setError(res.message ?? "Correction impossible.");
+    } catch (err: unknown) {
+      setError((err as { message?: string })?.message ?? "Une erreur est survenue.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="mx-4 -mt-3 mb-3 relative z-10">
+      <div className="bg-orange-50 border border-orange-300 rounded-2xl px-4 py-3">
+        <p className="text-orange-800 font-semibold text-sm">Retrait de {fmt(pending.amount)} F à corriger</p>
+        {pending.correction?.reason && <p className="text-orange-700 text-xs mt-1">{pending.correction.reason}</p>}
+        {pending.phone && <p className="text-orange-800 text-xs mt-1">Numéro actuel : <span className="font-mono">{pending.phone}</span></p>}
+        {ok ? (
+          <p className="text-green-700 text-xs font-semibold mt-2">{ok}</p>
+        ) : (
+          <form onSubmit={submit} className="mt-2 space-y-2">
+            <input
+              type="tel"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="Nouveau numéro Mobile Money"
+              required
+              className="w-full bg-white border border-orange-200 rounded-xl px-4 py-2.5 text-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300"
+            />
+            {error && <p className="text-red-600 text-xs">{error}</p>}
+            <button type="submit" disabled={busy}
+              className="w-full py-3 bg-green-600 text-white font-semibold rounded-xl text-sm disabled:opacity-60">
+              {busy ? "Envoi…" : "Corriger mon numéro"}
+            </button>
+            <p className="text-orange-700/80 text-[10px]">Le montant du retrait ne change pas.</p>
+          </form>
+        )}
+      </div>
     </div>
   );
 }
