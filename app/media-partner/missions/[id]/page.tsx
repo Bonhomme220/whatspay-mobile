@@ -83,6 +83,8 @@ export default function MediaPartnerMissionDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const [legendCopied, setLegendCopied] = useState(false);
+  const [linkCopied, setLinkCopied] = useState(false);
 
   const load = useCallback(() => {
     api.get<MissionDetail>(`/media-partner/missions/${id}`)
@@ -169,6 +171,15 @@ export default function MediaPartnerMissionDetailPage() {
   );
 
   const t = mission.task;
+  // Lien personnel de suivi (clics comptés pour cette chaîne), sinon lien de la campagne.
+  const personalLink = mission.tracking_url ?? t?.url ?? "";
+  const copyText = (text: string, which: "legend" | "link") => {
+    navigator.clipboard.writeText(text).then(() => {
+      const set = which === "legend" ? setLegendCopied : setLinkCopied;
+      set(true);
+      setTimeout(() => set(false), 2000);
+    }).catch(() => {});
+  };
   const pill = STATUS_PILL[mission.status] ?? { label: mission.status, cls: "bg-gray-100 text-gray-600" };
   const stepIdx = STEP_STATUS[mission.status] ?? 0;
   const isAssigned = mission.status === "ASSIGNED";
@@ -325,13 +336,43 @@ export default function MediaPartnerMissionDetailPage() {
           </div>
         )}
 
-        {/* ── Légende à copier ── */}
-        {!isAssigned && t?.legend && (
+        {/* ── Légende + lien personnel à copier (comme pour les diffuseurs) ── */}
+        {!isAssigned && (t?.legend || personalLink) && (
           <div className="bg-white rounded-2xl shadow-sm p-4">
-            <p className="text-gray-500 text-[10px] font-bold uppercase tracking-widest mb-2">Légende à publier</p>
-            <div className="bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5">
-              <p className="text-amber-900 text-sm leading-relaxed break-words whitespace-pre-wrap">{t.legend}</p>
-            </div>
+            <p className="text-gray-500 text-[10px] font-bold uppercase tracking-widest mb-2">Texte à publier sur votre chaîne</p>
+            {t?.legend && personalLink ? (
+              <div className="bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5">
+                <p className="text-amber-900 text-sm leading-relaxed break-words whitespace-pre-wrap">{t.legend}</p>
+                <p className="text-green-700 text-xs font-mono mt-2 break-all">{personalLink}</p>
+                <button onClick={() => copyText(`${t.legend}\n\n${personalLink}`, "legend")}
+                  className="mt-2.5 flex items-center gap-1 text-[10px] font-semibold text-amber-700">
+                  {legendCopied ? "Copié ✓" : "Copier légende + lien"}
+                </button>
+              </div>
+            ) : (
+              <>
+                {t?.legend && (
+                  <div className="bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5">
+                    <p className="text-amber-900 text-sm leading-relaxed break-words whitespace-pre-wrap">{t.legend}</p>
+                    <button onClick={() => copyText(t.legend!, "legend")}
+                      className="mt-2.5 flex items-center gap-1 text-[10px] font-semibold text-amber-700">
+                      {legendCopied ? "Copié ✓" : "Copier la légende"}
+                    </button>
+                  </div>
+                )}
+                {personalLink && (
+                  <div className="flex items-center gap-2 bg-gray-50 border border-gray-100 rounded-xl px-3 py-2.5 mt-2">
+                    <p className="flex-1 text-green-700 text-xs font-mono truncate">{personalLink}</p>
+                    <button onClick={() => copyText(personalLink, "link")} className="text-xs font-semibold text-green-700 flex-shrink-0">
+                      {linkCopied ? "Copié ✓" : "Copier"}
+                    </button>
+                  </div>
+                )}
+              </>
+            )}
+            {personalLink && (
+              <p className="text-gray-400 text-[10px] mt-2">Ce lien est personnel : il compte les clics venant de votre chaîne. Publiez-le tel quel.</p>
+            )}
           </div>
         )}
 
