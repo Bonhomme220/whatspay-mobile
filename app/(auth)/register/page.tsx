@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { api, auth, StoredUser } from "@/lib/api";
+import DuplicateAccountModal, { DuplicateAccount } from "@/components/DuplicateAccountModal";
 import Image from "next/image";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
@@ -83,6 +84,9 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
   const [showPwd, setShowPwd] = useState(false);
   const [refLocked, setRefLocked] = useState(false); // code parrain issu d'un lien → verrouillé
+  // Garde-fou comptes multiples : compte existant détecté (même téléphone / même nom + date).
+  const [dup, setDup] = useState<DuplicateAccount | null>(null);
+  const [confirmNew, setConfirmNew] = useState(false); // « ce n'est pas mon compte » (homonyme)
 
   // Lien de parrainage : ?ref=CODE (ou ?ambassador_code=CODE) → pré-remplit et verrouille le code.
   useEffect(() => {
@@ -237,11 +241,33 @@ export default function RegisterPage() {
     return errs;
   }
 
-  function next() {
+  // Vérifie, au fil des étapes, qu'aucun compte n'existe déjà (identité à l'étape 1,
+  // téléphone à l'étape 2). Erreur réseau → on n'empêche pas d'avancer (contrôle refait au final).
+  async function existingAccount(): Promise<DuplicateAccount | null> {
+    const body = step === 0
+      ? { firstname: form.firstname, lastname: form.lastname, birthdate: form.birthdate }
+      : step === 1
+        ? { phone: form.phone, phonecountry_id: form.phonecountry_id || form.country_id }
+        : null;
+    if (!body) return null;
+    try {
+      const r = await api.post<{ duplicate: DuplicateAccount | null }>("/auth/register/check", body);
+      const d = r?.duplicate ?? null;
+      return d && !(d.match === "identity" && confirmNew) ? d : null;
+    } catch {
+      return null;
+    }
+  }
+
+  async function next() {
     const errs = getStepErrors(step);
     if (Object.keys(errs).length > 0) { setFe(errs); return; }
     setFe({});
     setError("");
+    setLoading(true);
+    const d = await existingAccount();
+    setLoading(false);
+    if (d) { setDup(d); return; }
     setStep((s) => s + 1);
   }
 
@@ -275,6 +301,7 @@ export default function RegisterPage() {
           password:                    form.password,
           password_confirmation:       form.password_confirmation,
           ambassador_code:             form.ambassador_code || null,
+          confirm_new_account:         confirmNew,
         }
       );
 
@@ -295,6 +322,7 @@ export default function RegisterPage() {
         `&pcid=${encodeURIComponent(form.phonecountry_id || form.country_id)}`
       );
     } catch (err: any) {
+      if (err?.status === 409 && err?.duplicate) { setDup(err.duplicate); return; }
       setError(err?.message ?? "Une erreur est survenue.");
     } finally {
       setLoading(false);
@@ -308,6 +336,15 @@ export default function RegisterPage() {
       className="min-h-screen flex items-center justify-center px-4 py-10"
       style={{ background: "url('/login-bg.jpg') center/cover no-repeat fixed" }}
     >
+      {dup && (
+        <DuplicateAccountModal
+          dup={dup}
+          onLogin={() => router.push("/login")}
+          onForgot={() => router.push("/forgot-password")}
+          onContinue={() => { setConfirmNew(true); setDup(null); setStep((s) => (s === 0 ? 1 : s)); }}
+          onClose={() => setDup(null)}
+        />
+      )}
       <div className="w-full max-w-sm rounded-xl bg-white px-7 py-8 shadow-[0_0_37px_rgba(8,21,66,0.05)]">
         <div className="flex justify-center mb-5">
           <Image src="/logo.png" alt="WhatsPAY" width={140} height={44} className="object-contain" />
@@ -536,10 +573,11 @@ export default function RegisterPage() {
               <button
                 type="button"
                 onClick={next}
-                className="flex-1 text-white font-semibold py-3 rounded-lg text-sm"
+                disabled={loading}
+                className="flex-1 text-white font-semibold py-3 rounded-lg text-sm disabled:opacity-60"
                 style={{ backgroundColor: "#1ba24b" }}
               >
-                Suivant
+                {loading ? "Vérification…" : "Suivant"}
               </button>
             ) : (
               <button
