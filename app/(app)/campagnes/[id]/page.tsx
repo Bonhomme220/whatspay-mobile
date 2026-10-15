@@ -5,6 +5,7 @@ import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
 import { api } from "@/lib/api";
 import CivicBanner from "@/components/CivicBanner";
+import GainBreakdownCard, { GainBreakdown } from "@/components/GainBreakdownCard";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 interface Task {
@@ -24,6 +25,7 @@ interface Mission {
   submission_date: string | null; tracking_url: string | null;
   reason_title: string | null; reason_description: string | null;
   tracking_stats: TrackingStats | null;
+  gain_breakdown?: GainBreakdown | null;
   task: Task | null;
 }
 
@@ -248,11 +250,14 @@ export default function MissionDetailPage() {
           {[
             { label: "Début", value: fmtDate(t?.startdate ?? null) },
             { label: "Fin",   value: fmtDate(t?.enddate ?? null) },
-            { label: isCivic ? "Type" : "Gain", value: isCivic ? "Bénévolat" : `${mission.expected_gain} F` },
+            { label: isCivic ? "Type" : "Gain", value: isCivic ? "Bénévolat" : `${mission.expected_gain} F`,
+              detail: !isCivic && !!mission.gain_breakdown },
           ].map((s) => (
-            <div key={s.label} className="flex-1 text-center py-2 rounded-xl" style={{ background: "rgba(255,255,255,0.15)" }}>
+            <div key={s.label}
+              onClick={s.detail ? () => document.getElementById("detail-gain")?.scrollIntoView({ behavior: "smooth" }) : undefined}
+              className={`flex-1 text-center py-2 rounded-xl ${s.detail ? "cursor-pointer" : ""}`} style={{ background: "rgba(255,255,255,0.15)" }}>
               <p className="text-white font-bold text-sm">{s.value}</p>
-              <p className="text-green-100 text-[10px] mt-0.5">{s.label}</p>
+              <p className="text-green-100 text-[10px] mt-0.5">{s.label}{s.detail ? " · détail ↓" : ""}</p>
             </div>
           ))}
         </div>
@@ -425,6 +430,11 @@ export default function MissionDetailPage() {
                 </div>
               )}
             </div>
+            {!isCivic && (
+              <div className="mt-3">
+                <GainBreakdownCard breakdown={mission.gain_breakdown} id="detail-gain" />
+              </div>
+            )}
           </div>
         )}
 

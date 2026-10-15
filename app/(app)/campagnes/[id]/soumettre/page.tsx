@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { api, tokenStore } from "@/lib/api";
 import CivicBanner from "@/components/CivicBanner";
+import GainBreakdownCard, { GainBreakdown } from "@/components/GainBreakdownCard";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 interface Task {
@@ -15,6 +16,7 @@ interface Mission {
   id: string; status: string; expected_gain: number;
   vues: number | null; files: string | null;
   response_date: string | null;
+  gain_breakdown?: GainBreakdown | null;
   task: Task | null;
 }
 
@@ -202,6 +204,12 @@ export default function SoumettreProuvePage() {
       <div className="mx-4 -mt-6 space-y-4 pb-10">
 
         {isCivic && <CivicBanner />}
+
+        {!isCivic && mission.gain_breakdown && (
+          <div className="bg-white rounded-2xl shadow-sm p-3">
+            <GainBreakdownCard breakdown={mission.gain_breakdown} />
+          </div>
+        )}
 
         {/* Avertissement resoumission */}
         {isResubmission && (

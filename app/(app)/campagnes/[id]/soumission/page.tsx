@@ -5,6 +5,7 @@ import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
 import { api } from "@/lib/api";
 import CivicBanner from "@/components/CivicBanner";
+import GainBreakdownCard, { GainBreakdown } from "@/components/GainBreakdownCard";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 interface Complaint {
@@ -28,6 +29,7 @@ interface Mission {
   complaint: Complaint | null;
   task: Task | null;
   payout_mode: "flat" | "tiered" | null;
+  gain_breakdown?: GainBreakdown | null;
   payout_breakdown: PayoutTier[] | null;
   ambassador_bonus: number | null;
   click_bonus: number | null;
@@ -153,8 +155,14 @@ export default function SoumissionPage() {
           )}
         </div>
 
-        {/* ── Détail du calcul de paiement (transparence barème dégressif) ── */}
-        {(mission.status === "SUBMISSION_ACCEPTED" || mission.status === "SUBMITED") && (
+        {/* ── Détail du calcul de paiement : calcul serveur (même que le paiement réel) ── */}
+        {mission.gain_breakdown && !isCivic && (
+          <div className="bg-white rounded-2xl shadow-sm p-3">
+            <GainBreakdownCard breakdown={mission.gain_breakdown} defaultOpen />
+          </div>
+        )}
+        {/* Repli (API sans gain_breakdown) */}
+        {!mission.gain_breakdown && (mission.status === "SUBMISSION_ACCEPTED" || mission.status === "SUBMITED") && (
           <div className="bg-white rounded-2xl shadow-sm p-4">
             <p className="text-gray-500 text-[10px] font-bold uppercase tracking-widest mb-2">Détail du gain</p>
             {mission.payout_mode === "tiered" && mission.payout_breakdown && mission.payout_breakdown.length > 0 ? (

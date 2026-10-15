@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { api } from "@/lib/api";
+import GainBreakdownCard, { GainBreakdown } from "@/components/GainBreakdownCard";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 interface Task {
@@ -20,6 +21,7 @@ interface MissionDetail {
   tracking_url: string | null; requires_screenshot: boolean;
   reason_title: string | null; reason_description: string | null;
   tracking_stats: TrackingStats | null;
+  gain_breakdown?: GainBreakdown | null;
   task: Task | null;
 }
 
@@ -310,6 +312,9 @@ export default function MediaPartnerMissionDetailPage() {
                   <span className="text-gray-800 text-xs font-medium text-right">{row.value}</span>
                 </div>
               ))}
+            </div>
+            <div className="mt-3">
+              <GainBreakdownCard breakdown={mission.gain_breakdown} />
             </div>
           </div>
         )}
