@@ -38,6 +38,9 @@ interface CashlessOption {
   kyc_verified: boolean;
   eligible: boolean;
   message: string | null;
+  can_activate?: boolean;
+  created?: boolean;
+  download_url?: string;
   logos: { cashless: string; mobile_money: string };
   delays: { cashless: string; mobile_money: string };
 }
@@ -506,8 +509,14 @@ function WithdrawModal({ balance, hasPending, pendingAmount, cashless: initialCa
 
             {viaCashless ? (
               <div className="space-y-2">
-                {cashless?.message && <p className="text-gray-600 text-xs leading-relaxed">{cashless.message}</p>}
-                {!cashless?.ready && cashless?.kyc_verified && !cashless?.consent_given && cashless?.eligible && (
+                {cashless?.message && <p className="text-gray-600 text-xs leading-relaxed whitespace-pre-line">{cashless.message}</p>}
+                {cashless?.created && cashless?.download_url && (
+                  <a href={cashless.download_url} target="_blank" rel="noopener noreferrer"
+                    className="block w-full py-3 text-center bg-green-600 text-white font-semibold rounded-2xl text-sm">
+                    Télécharger l&apos;application Cashless
+                  </a>
+                )}
+                {!cashless?.ready && (cashless?.can_activate ?? (cashless?.kyc_verified && !cashless?.consent_given && cashless?.eligible)) && (
                   <>
                     <p className="text-gray-400 text-[11px] leading-snug">
                       En activant Cashless, j&apos;accepte que WhatsPAY transmette mes informations d&apos;identité à Cashless pour ouvrir mon portefeuille.
