@@ -9,6 +9,7 @@ function ctaHref(cta: NudgeCta): string {
     case "missions":       return "/campagnes";
     case "mission_detail": return `/campagnes/${cta.params?.id ?? ""}`;
     case "wallet":         return "/gains";
+    case "profile":        return "/profil";
     case "ambassador":     return "/ambassadeur";
     case "faq":            return "/faq";
     case "complaints":     return "/reclamations";
