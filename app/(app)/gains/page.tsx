@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
+import CashlessActivationCard, { type CashlessDownload } from "@/components/CashlessActivationCard";
 import Pagination from "@/components/Pagination";
 
 const PAGE_SIZE = 10;
@@ -41,6 +42,9 @@ interface CashlessOption {
   can_activate?: boolean;
   created?: boolean;
   download_url?: string;
+  download?: CashlessDownload;
+  login?: { email: string | null; phone: string | null };
+  instant?: { available: boolean; fee: number; label: string; free_label: string };
   logos: { cashless: string; mobile_money: string };
   delays: { cashless: string; mobile_money: string };
 }
@@ -172,6 +176,14 @@ export default function GainsPage() {
           </button>
         </div>
       </div>
+
+      {/* ── Portefeuille Cashless créé, à activer ── */}
+      {data.cashless?.enabled && data.cashless?.created && (
+        <div className="mx-4 -mt-3 mb-3 relative z-10">
+          <CashlessActivationCard email={data.cashless.login?.email} phone={data.cashless.login?.phone}
+            download={data.cashless.download} downloadUrl={data.cashless.download_url} compact />
+        </div>
+      )}
 
       {/* ── Retrait renvoyé pour correction du numéro ── */}
       {hasPending && data.pending_withdrawal!.correction && (
@@ -364,6 +376,10 @@ function WithdrawModal({ balance, hasPending, pendingAmount, cashless: initialCa
   const [error, setError]     = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [kycVerifyUrl, setKycVerifyUrl] = useState<string | null>(null);
+  // Retrait Cashless : instantané payant (frais déduits) ou validation WhatsPAY gratuite.
+  const [instant, setInstant] = useState<boolean | null>(null);
+  const instantOffer = viaCashless && cashless?.ready && cashless?.instant?.available ? cashless.instant : null;
+  const amountNum = parseFloat(amount) || 0;
 
   // Si retrait déjà en cours, on affiche directement l'info sans formulaire
   if (hasPending) {
@@ -400,7 +416,7 @@ function WithdrawModal({ balance, hasPending, pendingAmount, cashless: initialCa
     setSub(true);
     try {
       const res = await api.post<{ success: boolean; message: string; has_pending?: boolean }>("/withdraw", viaCashless
-        ? { amount: parseFloat(amount), withdrawal_method: "cashless" }
+        ? { amount: parseFloat(amount), withdrawal_method: "cashless", instant: !!instantOffer && instant === true }
         : { amount: parseFloat(amount), withdrawal_method: "mobile_money", phone: phone.replace(/\D/g, "") });
       if (res.success) {
         setSuccess(res.message);
@@ -509,17 +525,36 @@ function WithdrawModal({ balance, hasPending, pendingAmount, cashless: initialCa
 
             {viaCashless ? (
               <div className="space-y-2">
-                {cashless?.message && <p className="text-gray-600 text-xs leading-relaxed whitespace-pre-line">{cashless.message}</p>}
-                {cashless?.created && cashless?.download_url && (
-                  <a href={cashless.download_url} target="_blank" rel="noopener noreferrer"
-                    className="block w-full py-3 text-center bg-green-600 text-white font-semibold rounded-2xl text-sm">
-                    Télécharger l&apos;application Cashless
-                  </a>
+                {cashless?.created ? (
+                  <CashlessActivationCard email={cashless.login?.email} phone={cashless.login?.phone}
+                    download={cashless.download} downloadUrl={cashless.download_url} />
+                ) : (
+                  cashless?.message && <p className="text-gray-600 text-xs leading-relaxed whitespace-pre-line">{cashless.message}</p>
+                )}
+                {instantOffer && (
+                  <div className="space-y-2">
+                    <p className="text-gray-500 text-xs font-semibold uppercase tracking-wide">Quand veux-tu recevoir ton argent ?</p>
+                    <button type="button" onClick={() => setInstant(true)}
+                      className={`w-full text-left rounded-2xl border-2 px-4 py-3 ${instant === true ? "border-green-600 bg-green-50" : "border-gray-200"}`}>
+                      <p className="text-gray-800 text-sm font-bold">⚡ Tout de suite — {instantOffer.fee} F de frais</p>
+                      <p className="text-gray-500 text-xs mt-0.5">{instantOffer.label}</p>
+                      {amountNum > instantOffer.fee && (
+                        <p className="text-green-700 text-xs font-semibold mt-1">
+                          Tu reçois {fmt(amountNum - instantOffer.fee)} F en quelques secondes ({fmt(amountNum)} F − {instantOffer.fee} F).
+                        </p>
+                      )}
+                    </button>
+                    <button type="button" onClick={() => setInstant(false)}
+                      className={`w-full text-left rounded-2xl border-2 px-4 py-3 ${instant === false ? "border-green-600 bg-green-50" : "border-gray-200"}`}>
+                      <p className="text-gray-800 text-sm font-bold">🕒 Sans frais — validation WhatsPAY</p>
+                      <p className="text-gray-500 text-xs mt-0.5">{instantOffer.free_label}</p>
+                    </button>
+                  </div>
                 )}
                 {!cashless?.ready && (cashless?.can_activate ?? (cashless?.kyc_verified && !cashless?.consent_given && cashless?.eligible)) && (
                   <>
                     <p className="text-gray-400 text-[11px] leading-snug">
-                      En activant Cashless, j&apos;accepte que WhatsPAY transmette mes informations d&apos;identité à Cashless pour ouvrir mon portefeuille.
+                      En activant Cashless, j&apos;accepte que WhatsPAY transmette mon nom, mon téléphone, mon email et mon adresse à Cashless pour ouvrir mon portefeuille.
                     </p>
                     <button type="button" onClick={activateCashless} disabled={consentBusy}
                       className="w-full py-3 border-2 border-green-600 text-green-700 font-semibold rounded-2xl text-sm disabled:opacity-60">
@@ -546,7 +581,7 @@ function WithdrawModal({ balance, hasPending, pendingAmount, cashless: initialCa
 
             <button
               type="submit"
-              disabled={submitting || cashlessBlocked}
+              disabled={submitting || cashlessBlocked || (!!instantOffer && instant === null)}
               className="w-full py-4 bg-green-600 text-white font-semibold rounded-2xl text-sm disabled:opacity-60 flex items-center justify-center gap-2"
             >
               {submitting && (

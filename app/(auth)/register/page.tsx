@@ -555,6 +555,9 @@ export default function RegisterPage() {
                 />
                 <FieldError msg={fe.password_confirmation} />
               </div>
+              <p className="text-gray-500 text-[11px] leading-snug bg-green-50 border border-green-100 rounded-lg px-3 py-2">
+                💸 En créant ton compte, WhatsPAY t&apos;ouvre aussi un portefeuille <strong>Cashless</strong> (avec ton nom, ton téléphone, ton email et ton adresse) pour recevoir tes retraits en quelques secondes. Tu l&apos;activeras plus tard en un clic.
+              </p>
             </>
           )}
 
