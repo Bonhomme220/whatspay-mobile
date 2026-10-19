@@ -1,5 +1,6 @@
 "use client";
 
+import AppOnlyAuthGate from "@/components/AppOnlyAuthGate";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { api, auth, StoredUser } from "@/lib/api";
@@ -136,7 +137,7 @@ function FileField({ label, file, error, onChange }: { label: string; file: File
 }
 
 // ── Page ──────────────────────────────────────────────────────────────────────
-export default function RegisterMediaPartnerPage() {
+function WebRegisterMediaPartnerPage() {
   const router = useRouter();
   const [step, setStep] = useState(0);
   const [form, setForm] = useState<FormData>(EMPTY);
@@ -670,5 +671,14 @@ export default function RegisterMediaPartnerPage() {
         </p>
       </div>
     </div>
+  );
+}
+
+/** Inscription / connexion uniquement dans l'app (accès web de secours : ?web=1). */
+export default function RegisterMediaPartnerPage() {
+  return (
+    <AppOnlyAuthGate mode="register">
+      <WebRegisterMediaPartnerPage />
+    </AppOnlyAuthGate>
   );
 }

@@ -1,5 +1,6 @@
 "use client";
 
+import AppOnlyAuthGate from "@/components/AppOnlyAuthGate";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { api, auth, StoredUser } from "@/lib/api";
@@ -76,7 +77,7 @@ function StepDots({ step, total }: { step: number; total: number }) {
 }
 
 // ── Page ──────────────────────────────────────────────────────────────────────
-export default function RegisterPage() {
+function WebRegisterPage() {
   const router = useRouter();
   const [step, setStep]       = useState(0);
   const [form, setForm]       = useState<FormData>(EMPTY);
@@ -611,5 +612,14 @@ export default function RegisterPage() {
         </p>
       </div>
     </div>
+  );
+}
+
+/** Inscription / connexion uniquement dans l'app (accès web de secours : ?web=1). */
+export default function RegisterPage() {
+  return (
+    <AppOnlyAuthGate mode="register">
+      <WebRegisterPage />
+    </AppOnlyAuthGate>
   );
 }

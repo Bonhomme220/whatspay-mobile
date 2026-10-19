@@ -1,12 +1,13 @@
 "use client";
 
+import AppOnlyAuthGate from "@/components/AppOnlyAuthGate";
 import Link from "next/link";
 import Image from "next/image";
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 // Écran d'aiguillage avant inscription : diffuseur individuel (parcours existant,
 // inchangé) vs partenaire média (gestionnaire de chaîne WhatsApp, nouveau parcours).
-export default function RegisterChoicePage() {
+function WebRegisterChoicePage() {
   return (
     <div
       className="min-h-screen flex items-center justify-center px-4 py-10"
@@ -77,5 +78,14 @@ export default function RegisterChoicePage() {
         </p>
       </div>
     </div>
+  );
+}
+
+/** Inscription / connexion uniquement dans l'app (accès web de secours : ?web=1). */
+export default function RegisterChoicePage() {
+  return (
+    <AppOnlyAuthGate mode="register">
+      <WebRegisterChoicePage />
+    </AppOnlyAuthGate>
   );
 }

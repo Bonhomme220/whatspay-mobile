@@ -1,11 +1,12 @@
 "use client";
 
+import AppOnlyAuthGate from "@/components/AppOnlyAuthGate";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { auth, homeRouteForProfil } from "@/lib/api";
 import Image from "next/image";
 
-export default function LoginPage() {
+function WebLoginPage() {
   const router = useRouter();
   const [email, setEmail]       = useState("");
   const [password, setPassword] = useState("");
@@ -160,5 +161,14 @@ export default function LoginPage() {
         </p>
       </div>
     </div>
+  );
+}
+
+/** Inscription / connexion uniquement dans l'app (accès web de secours : ?web=1). */
+export default function LoginPage() {
+  return (
+    <AppOnlyAuthGate mode="login">
+      <WebLoginPage />
+    </AppOnlyAuthGate>
   );
 }
