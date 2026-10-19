@@ -40,6 +40,7 @@ interface CashlessOption {
   eligible: boolean;
   message: string | null;
   can_activate?: boolean;
+  mobile_money_enabled?: boolean;
   created?: boolean;
   download_url?: string;
   download?: CashlessDownload;
@@ -366,7 +367,9 @@ function WithdrawModal({ balance, hasPending, pendingAmount, cashless: initialCa
 }) {
   const [cashless, setCashless] = useState<CashlessOption | null>(initialCashless);
   const cashlessOn = !!cashless?.enabled;
-  const [method, setMethod] = useState<"cashless" | "mobile_money">(initialCashless?.ready ? "cashless" : "mobile_money");
+  // Mobile Money retiré par l'équipe (réglage console) → Cashless uniquement.
+  const mmOff = !!initialCashless?.enabled && initialCashless?.mobile_money_enabled === false;
+  const [method, setMethod] = useState<"cashless" | "mobile_money">(initialCashless?.ready || mmOff ? "cashless" : "mobile_money");
   const [consentBusy, setConsentBusy] = useState(false);
   const viaCashless = method === "cashless" && cashlessOn;
   const cashlessBlocked = viaCashless && !cashless?.ready;
@@ -514,11 +517,13 @@ function WithdrawModal({ balance, hasPending, pendingAmount, cashless: initialCa
                 <label className="text-gray-500 text-xs font-semibold uppercase tracking-wide block mb-1.5">
                   Recevoir mon argent sur
                 </label>
-                <div className="grid grid-cols-2 gap-2.5">
+                <div className={`grid ${mmOff ? "grid-cols-1" : "grid-cols-2"} gap-2.5`}>
                   <MethodCard selected={method === "cashless"} onClick={() => { setMethod("cashless"); setError(null); }}
                     title="Cashless" logo={cashless.logos.cashless} delay={cashless.delays.cashless} highlight />
-                  <MethodCard selected={method === "mobile_money"} onClick={() => { setMethod("mobile_money"); setError(null); }}
-                    title="Mobile Money" logo={cashless.logos.mobile_money} delay={cashless.delays.mobile_money} />
+                  {!mmOff && (
+                    <MethodCard selected={method === "mobile_money"} onClick={() => { setMethod("mobile_money"); setError(null); }}
+                      title="Mobile Money" logo={cashless.logos.mobile_money} delay={cashless.delays.mobile_money} />
+                  )}
                 </div>
               </div>
             )}
