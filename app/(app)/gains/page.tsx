@@ -45,7 +45,7 @@ interface CashlessOption {
   download_url?: string;
   download?: CashlessDownload;
   login?: { email: string | null; phone: string | null };
-  instant?: { available: boolean; fee: number; label: string; free_label: string };
+  instant?: { available: boolean; fee: number; label: string; free_label: string; title?: string; free_title?: string };
   logos: { cashless: string; mobile_money: string };
   delays: { cashless: string; mobile_money: string };
 }
@@ -541,7 +541,7 @@ function WithdrawModal({ balance, hasPending, pendingAmount, cashless: initialCa
                     <p className="text-gray-500 text-xs font-semibold uppercase tracking-wide">Quand veux-tu recevoir ton argent ?</p>
                     <button type="button" onClick={() => setInstant(true)}
                       className={`w-full text-left rounded-2xl border-2 px-4 py-3 ${instant === true ? "border-green-600 bg-green-50" : "border-gray-200"}`}>
-                      <p className="text-gray-800 text-sm font-bold">⚡ Tout de suite — {instantOffer.fee} F de frais</p>
+                      <p className="text-gray-800 text-sm font-bold">{instantOffer.title ?? `⚡ Tout de suite — ${instantOffer.fee} F de frais`}</p>
                       <p className="text-gray-500 text-xs mt-0.5">{instantOffer.label}</p>
                       {amountNum > instantOffer.fee && (
                         <p className="text-green-700 text-xs font-semibold mt-1">
@@ -551,7 +551,7 @@ function WithdrawModal({ balance, hasPending, pendingAmount, cashless: initialCa
                     </button>
                     <button type="button" onClick={() => setInstant(false)}
                       className={`w-full text-left rounded-2xl border-2 px-4 py-3 ${instant === false ? "border-green-600 bg-green-50" : "border-gray-200"}`}>
-                      <p className="text-gray-800 text-sm font-bold">🕒 Sans frais — validation WhatsPAY</p>
+                      <p className="text-gray-800 text-sm font-bold">{instantOffer.free_title ?? "🕒 Sans frais — validation WhatsPAY"}</p>
                       <p className="text-gray-500 text-xs mt-0.5">{instantOffer.free_label}</p>
                     </button>
                   </div>
