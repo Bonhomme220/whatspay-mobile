@@ -112,6 +112,8 @@ export default function GainsPage() {
   if (!data) return null;
 
   const hasPending = !!data.pending_withdrawal;
+  // Carte Cashless affichée : les blocs suivants ne chevauchent plus le bandeau du solde.
+  const cashlessShown = !!(data.cashless?.enabled && data.cashless?.created);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -179,7 +181,7 @@ export default function GainsPage() {
       </div>
 
       {/* ── Portefeuille Cashless créé, à activer ── */}
-      {data.cashless?.enabled && data.cashless?.created && (
+      {cashlessShown && data.cashless && (
         <div className="mx-4 -mt-3 mb-3 relative z-10">
           <CashlessActivationCard email={data.cashless.login?.email} phone={data.cashless.login?.phone}
             download={data.cashless.download} downloadUrl={data.cashless.download_url} compact />
@@ -188,12 +190,12 @@ export default function GainsPage() {
 
       {/* ── Retrait renvoyé pour correction du numéro ── */}
       {hasPending && data.pending_withdrawal!.correction && (
-        <WithdrawalCorrection pending={data.pending_withdrawal!} onDone={() => load(true)} />
+        <WithdrawalCorrection pending={data.pending_withdrawal!} onDone={() => load(true)} flush={cashlessShown} />
       )}
 
       {/* ── Bannière retrait en cours ── */}
       {hasPending && !data.pending_withdrawal!.correction && (
-        <div className="mx-4 -mt-3 mb-3 relative z-10">
+        <div className={`mx-4 ${cashlessShown ? "" : "-mt-3"} mb-3 relative z-10`}>
           <div className="bg-amber-50 border border-amber-200 rounded-2xl px-4 py-3 flex items-start gap-3">
             <div className="w-8 h-8 rounded-xl bg-amber-100 flex items-center justify-center flex-shrink-0 mt-0.5">
               <svg className="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -212,7 +214,7 @@ export default function GainsPage() {
       )}
 
       {/* ── Historique — chevauchement hero ── */}
-      <div className={`mx-4 ${hasPending ? "" : "-mt-6"} bg-white rounded-2xl shadow-sm overflow-hidden mb-4`}>
+      <div className={`mx-4 ${hasPending || cashlessShown ? "" : "-mt-6"} bg-white rounded-2xl shadow-sm overflow-hidden mb-4`}>
 
         {/* Header + filtres */}
         <div className="flex items-center gap-2 px-4 pt-4 pb-3 flex-wrap border-b border-gray-50">
@@ -302,7 +304,7 @@ export default function GainsPage() {
 }
 
 // ── WithdrawalCorrection : le diffuseur corrige son numéro Mobile Money ─────────────
-function WithdrawalCorrection({ pending, onDone }: { pending: PendingWithdrawal; onDone: () => void }) {
+function WithdrawalCorrection({ pending, onDone, flush = false }: { pending: PendingWithdrawal; onDone: () => void; flush?: boolean }) {
   const [phone, setPhone] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -326,7 +328,7 @@ function WithdrawalCorrection({ pending, onDone }: { pending: PendingWithdrawal;
   }
 
   return (
-    <div className="mx-4 -mt-3 mb-3 relative z-10">
+    <div className={`mx-4 ${flush ? "" : "-mt-3"} mb-3 relative z-10`}>
       <div className="bg-orange-50 border border-orange-300 rounded-2xl px-4 py-3">
         <p className="text-orange-800 font-semibold text-sm">Retrait de {fmt(pending.amount)} F à corriger</p>
         {pending.correction?.reason && <p className="text-orange-700 text-xs mt-1">{pending.correction.reason}</p>}
