@@ -102,7 +102,7 @@ function PortefeuilleInner() {
         </div>
       </div>
 
-      {sheet && <RechargeSheet onClose={() => setSheet(false)} />}
+      {sheet && <RechargeSheet onClose={() => setSheet(false)} onPaid={() => { setSheet(false); load(); setBanner({ type: "success", text: "Paiement confirmé : ton portefeuille est crédité." }); }} />}
     </div>
   );
 }
@@ -150,28 +150,75 @@ function TxRow({ t, onRequested }: { t: Tx; onRequested: () => void }) {
   );
 }
 
-function RechargeSheet({ onClose }: { onClose: () => void }) {
+// Réglage par pays (réseaux, format du numéro, mode) fourni par le serveur : le même que l'espace annonceur.
+interface DepNetwork { code: string; name: string; otp: boolean }
+interface DepCountry { iso: string; name: string; dial: string; digits: number; example: string; mode: "direct" | "redirect"; networks: DepNetwork[] }
+interface DepOptions { default_country: string; countries: DepCountry[]; min_amount?: number }
+type AddFundsRes = { mode?: "direct" | "redirect"; redirect_url?: string; transaction_id?: string; phone?: string; message?: string };
+
+function RechargeSheet({ onClose, onPaid }: { onClose: () => void; onPaid: () => void }) {
   const [amount, setAmount] = useState("");
   const [phone, setPhone] = useState("");
+  const [otp, setOtp] = useState("");
+  const [opts, setOpts] = useState<DepOptions | null>(null);
+  const [country, setCountry] = useState("");
+  const [network, setNetwork] = useState("");
   const [loading, setLoading] = useState(false);
+  const [waiting, setWaiting] = useState<string | null>(null); // paiement direct : en attente de validation
   const [error, setError] = useState("");
 
-  const PRESETS = [2500, 5000, 10000, 25000, 50000, 100000];
+  const PRESETS = [5000, 10000, 25000, 50000, 100000, 250000];
+  const min = opts?.min_amount ?? 5000;
+
+  const loadOptions = useCallback(() => {
+    setError("");
+    api.get<DepOptions>("/announcer/wallet/deposit-options").then((o) => {
+      setOpts(o);
+      setCountry((c) => c || o.default_country);
+    }).catch(() => setError("Impossible de charger les moyens de paiement. Vérifie ta connexion."));
+  }, []);
+  useEffect(() => { loadOptions(); }, [loadOptions]);
+
+  const c = opts?.countries.find((x) => x.iso === country) ?? null;
+  const net = c?.networks.find((n) => n.code === network) ?? null;
+  useEffect(() => { setNetwork(c?.networks[0]?.code ?? ""); setOtp(""); }, [country]); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function submit() {
     setError("");
     const amt = parseFloat(amount) || 0;
-    if (amt < 1) { setError("Montant invalide."); return; }
-    if (!/^[0-9+]{8,15}$/.test(phone)) { setError("Numéro de téléphone invalide."); return; }
+    if (amt < min) { setError(`Le montant minimum de recharge est de ${fmt(min)} F.`); return; }
+    if (!c) { setError("Choisis ton pays."); return; }
+    if (phone.replace(/\D/g, "").length < c.digits) { setError(`Saisis les ${c.digits} chiffres de ton numéro ${c.name} (ex. ${c.example}).`); return; }
+    if (net?.otp && !otp) { setError("Saisis le code de paiement (OTP) généré depuis ton compte Orange Money."); return; }
     setLoading(true);
     try {
-      const res = await api.post<{ redirect_url: string }>("/announcer/wallet/add-funds", { amount: amt, phone });
+      const res = await api.post<AddFundsRes>("/announcer/wallet/add-funds", { amount: amt, country, network, phone, otp: otp || undefined });
+      if (res.mode === "direct" && res.transaction_id) {
+        setWaiting(res.message ?? `Demande envoyée au ${res.phone} : valide-la sur ton téléphone.`);
+        poll(res.transaction_id);
+        return;
+      }
       // Redirige vers PayPlus. Le retour ramène sur /annonceur/portefeuille?status=…
-      window.location.href = res.redirect_url;
+      if (res.redirect_url) { window.location.href = res.redirect_url; return; }
+      setError("Redirection de paiement indisponible.");
+      setLoading(false);
     } catch (e: any) {
       setError(e?.message ?? "Échec de l'initialisation du paiement.");
       setLoading(false);
     }
+  }
+
+  function poll(id: string) {
+    let n = 0;
+    const iv = setInterval(async () => {
+      n++;
+      try {
+        const st = await api.get<{ status: string }>(`/announcer/wallet/deposits/${id}`);
+        if (st.status === "completed") { clearInterval(iv); onPaid(); return; }
+        if (st.status === "failed") { clearInterval(iv); setWaiting(null); setLoading(false); setError("Paiement refusé ou annulé sur ton téléphone."); return; }
+      } catch { /* nouvel essai au prochain tour */ }
+      if (n >= 36) { clearInterval(iv); setWaiting(null); setLoading(false); setError("Paiement toujours en attente. Ton solde sera crédité dès sa validation."); }
+    }, 5000);
   }
 
   return (
@@ -193,15 +240,45 @@ function RechargeSheet({ onClose }: { onClose: () => void }) {
           ))}
         </div>
 
-        <label className="block text-sm font-medium text-gray-700 mb-1.5 mt-4">Numéro Mobile Money</label>
-        <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Ex. 0161000000"
+        <div className="grid grid-cols-2 gap-2 mt-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">Pays</label>
+            <select value={country} onChange={(e) => setCountry(e.target.value)} onFocus={() => { if (!opts) loadOptions(); }}
+              className="w-full rounded-lg border border-gray-200 px-3 py-2.5 text-sm bg-white focus:outline-none focus:border-green-500">
+              {!opts && <option value="">Chargement…</option>}
+              {opts?.countries.map((x) => <option key={x.iso} value={x.iso}>{x.name}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">Réseau</label>
+            <select value={network} onChange={(e) => setNetwork(e.target.value)}
+              className="w-full rounded-lg border border-gray-200 px-3 py-2.5 text-sm bg-white focus:outline-none focus:border-green-500">
+              {c?.networks.map((n) => <option key={n.code} value={n.code}>{n.name}</option>)}
+            </select>
+          </div>
+        </div>
+
+        <label className="block text-sm font-medium text-gray-700 mb-1.5 mt-4">Numéro Mobile Money{c ? ` (+${c.dial})` : ""}</label>
+        <input type="tel" inputMode="numeric" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder={c ? `Ex. ${c.example}` : ""}
           className="w-full rounded-lg border border-gray-200 px-3 py-2.5 text-sm focus:outline-none focus:border-green-500" />
 
-        <button onClick={submit} disabled={loading}
+        {net?.otp && (
+          <>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5 mt-4">Code de paiement Orange Money (OTP)</label>
+            <input type="text" inputMode="numeric" value={otp} onChange={(e) => setOtp(e.target.value)} placeholder="Code généré depuis ton compte Orange Money"
+              className="w-full rounded-lg border border-gray-200 px-3 py-2.5 text-sm focus:outline-none focus:border-green-500" />
+          </>
+        )}
+
+        {waiting && <div className="mt-4 rounded-lg bg-green-50 border border-green-200 px-3 py-2.5 text-sm text-green-700">{waiting}</div>}
+
+        <button onClick={submit} disabled={loading || !opts}
           className="w-full mt-5 bg-green-600 text-white font-bold py-3 rounded-xl disabled:opacity-50">
-          {loading ? "Redirection…" : "Payer via PayPlus"}
+          {waiting ? "En attente de validation…" : loading ? (c?.mode === "direct" ? "Envoi de la demande…" : "Redirection…") : (c?.mode === "direct" ? "Payer" : "Payer via PayPlus")}
         </button>
-        <p className="text-[11px] text-gray-400 text-center mt-2">Vous serez redirigé vers la passerelle sécurisée PayPlus.</p>
+        <p className="text-[11px] text-gray-400 text-center mt-2">
+          {c?.mode === "direct" ? "La demande de paiement arrive sur ton téléphone : valide-la avec ton code secret Mobile Money." : "Tu seras redirigé vers la passerelle sécurisée PayPlus."}
+        </p>
       </div>
     </div>
   );
