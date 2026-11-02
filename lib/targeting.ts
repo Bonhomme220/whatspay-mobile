@@ -66,5 +66,6 @@ export const WARNING_TEXT: Record<string, string> = {
   manager_trainee: "Direction et stagiaire ne vont pas ensemble d’habitude.",
   student_diploma: "Ton diplôme semble plus élevé que le niveau que tu suis : c’est bien ça ?",
   public_manager_diploma: "Cadre de la fonction publique avec ce diplôme : c’est bien ça ?",
+  diploma_age: "Ce diplôme semble tôt pour ton âge : c’est bien ça ?",
   field_sector: "Ta filière et ton secteur ne vont pas ensemble d’habitude : c’est bien ça ?",
 };
