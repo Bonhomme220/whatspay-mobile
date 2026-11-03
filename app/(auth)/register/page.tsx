@@ -4,6 +4,7 @@ import AppOnlyAuthGate from "@/components/AppOnlyAuthGate";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { api, auth, StoredUser } from "@/lib/api";
+import GeoCascade, { GeoValue } from "@/components/GeoCascade";
 import DuplicateAccountModal, { DuplicateAccount } from "@/components/DuplicateAccountModal";
 import ProfileWizard from "@/components/ProfileWizard";
 import { Answers, fetchRegistrationQuestions, ProfileQuestion } from "@/lib/targeting";
@@ -131,6 +132,7 @@ function WebRegisterPage() {
 
   // Référentiels
   const [countries,        setCountries]        = useState<Ref[]>([]);
+  const [geo, setGeo] = useState<GeoValue>({ ids: [], missing: [] });
   const [localities,       setLocalities]       = useState<Ref[]>([]);
   const [arrondissements,  setArrondissements]  = useState<Ref[]>([]);
   const [quartiers,        setQuartiers]        = useState<Ref[]>([]);
@@ -142,7 +144,8 @@ function WebRegisterPage() {
 
   useEffect(() => {
     Promise.all([
-      api.get<Ref[]>("/countries"),
+      // Pays ouverts aux inscriptions (Console › Pays).
+      api.get<{ items: Ref[] }>("/geo/countries").then((r) => r.items ?? []),
       api.get<Ref[]>("/categories"),
       api.get<Ref[]>("/langs"),
       api.get<Ref[]>("/studies"),
@@ -224,9 +227,8 @@ function WebRegisterPage() {
     }
     if (s === 1) {
       if (!form.country_id)                   errs.country_id                   = "Pays requis.";
-      if (!form.locality_id)                  errs.locality_id                  = "Ville requise.";
-      if (arrondissements.length > 0 && !form.arrondissement_locality_id) errs.arrondissement_locality_id = "Arrondissement requis.";
-      if (quartiers.length > 0 && !form.quartier_locality_id)           errs.quartier_locality_id       = "Quartier requis.";
+      if (geo.missing.length)                 errs.locality_id                  = `${geo.missing[0]} requis(e).`;
+      else if (!geo.ids.length)               errs.locality_id                  = "Ville requise.";
       if (!form.phone.trim())                 errs.phone                        = "Téléphone requis.";
     }
     if (s === 2) {
@@ -300,9 +302,7 @@ function WebRegisterPage() {
           email:                       form.email,
           birthdate:                   form.birthdate,
           country_id:                  form.country_id,
-          locality_id:                 form.locality_id,
-          arrondissement_locality_id:  form.arrondissement_locality_id,
-          quartier_locality_id:        form.quartier_locality_id,
+          geo_ids:                     geo.ids,
           phone:                       form.phone,
           phonecountry_id:             form.phonecountry_id || form.country_id,
           vuesmoyen:                   Number(form.vuesmoyen),
@@ -442,20 +442,7 @@ function WebRegisterPage() {
                 {countries.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
               </Select>
 
-              <Select label="Ville / Localité" value={form.locality_id} onChange={(e) => { set("locality_id", e.target.value); setFe((f) => ({ ...f, locality_id: "" })); }} disabled={!localities.length} error={fe.locality_id}>
-                <option value="">{localities.length ? "Sélectionnez votre ville" : "Choisissez d'abord un pays"}</option>
-                {localities.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
-              </Select>
-
-              <Select label="Arrondissement" value={form.arrondissement_locality_id} onChange={(e) => { set("arrondissement_locality_id", e.target.value); setFe((f) => ({ ...f, arrondissement_locality_id: "" })); }} disabled={!arrondissements.length} error={fe.arrondissement_locality_id}>
-                <option value="">{arrondissements.length ? "Sélectionnez votre arrondissement" : "Choisissez d'abord une ville"}</option>
-                {arrondissements.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
-              </Select>
-
-              <Select label="Quartier" value={form.quartier_locality_id} onChange={(e) => { set("quartier_locality_id", e.target.value); setFe((f) => ({ ...f, quartier_locality_id: "" })); }} disabled={!quartiers.length} error={fe.quartier_locality_id}>
-                <option value="">{quartiers.length ? "Sélectionnez votre quartier" : "Choisissez d'abord un arrondissement"}</option>
-                {quartiers.map((q) => <option key={q.id} value={q.id}>{q.name}</option>)}
-              </Select>
+              {form.country_id ? <GeoCascade countryId={form.country_id} onChange={setGeo} error={fe.locality_id} /> : null}
 
               <Input label="Numéro de téléphone" type="tel" value={form.phone} onChange={(e) => { set("phone", e.target.value); setFe((f) => ({ ...f, phone: "" })); }} placeholder="97000000" error={fe.phone} />
             </>
