@@ -310,6 +310,15 @@ function ProfilPageInner() {
           </div>
         )}
 
+        {/* ── Profil de diffusion (ciblage) : consultable et modifiable à tout moment ── */}
+        <button onClick={() => router.push("/profil/confirmer")} className="w-full bg-white rounded-2xl shadow-sm p-4 flex items-center justify-between text-left">
+          <div>
+            <p className="text-sm font-semibold text-gray-800">Mon profil de diffusion</p>
+            <p className="text-xs text-gray-500">Langues, statut, intérêts… voir et modifier</p>
+          </div>
+          <span className="text-green-600 text-xs font-semibold">Modifier ›</span>
+        </button>
+
         {/* ── Infos personnelles ── */}
         <div className="bg-white rounded-2xl shadow-sm p-4 space-y-3">
           <div className="flex items-center justify-between">
