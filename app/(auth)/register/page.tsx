@@ -5,6 +5,8 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { api, auth, StoredUser } from "@/lib/api";
 import DuplicateAccountModal, { DuplicateAccount } from "@/components/DuplicateAccountModal";
+import ProfileWizard from "@/components/ProfileWizard";
+import { Answers, fetchRegistrationQuestions, ProfileQuestion } from "@/lib/targeting";
 import Image from "next/image";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
@@ -80,6 +82,8 @@ function StepDots({ step, total }: { step: number; total: number }) {
 function WebRegisterPage() {
   const router = useRouter();
   const [step, setStep]       = useState(0);
+  const [questions, setQuestions] = useState<ProfileQuestion[] | null>(null);
+  const [answers, setAnswers] = useState<Answers | null>(null);
   const [form, setForm]       = useState<FormData>(EMPTY);
   const [error, setError]     = useState("");
   const [loading, setLoading] = useState(false);
@@ -227,10 +231,6 @@ function WebRegisterPage() {
     }
     if (s === 2) {
       if (!form.vuesmoyen || Number(form.vuesmoyen) < 1) errs.vuesmoyen = "Nombre de vues requis (min. 1).";
-      if (!form.lang_id)  errs.lang_id  = "Langue requise.";
-      if (!form.study_id) errs.study_id = "Niveau d'études requis.";
-      if (form.categories.length < 1)   errs.categories   = "Sélectionnez au moins 1 catégorie.";
-      if (form.categories.length > 4)   errs.categories   = "Maximum 4 catégories.";
       if (form.contentTypes.length < 1) errs.contentTypes = "Sélectionnez au moins 1 type de contenu.";
     }
     if (s === 3) {
@@ -265,6 +265,18 @@ function WebRegisterPage() {
     if (Object.keys(errs).length > 0) { setFe(errs); return; }
     setFe({});
     setError("");
+    // Après le profil : les questions de ciblage, avant la création du compte.
+    if (step === 2) {
+      setLoading(true);
+      try {
+        setQuestions(await fetchRegistrationQuestions(form.country_id, form.birthdate));
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "Chargement impossible.");
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
     setLoading(true);
     const d = await existingAccount();
     setLoading(false);
@@ -294,11 +306,8 @@ function WebRegisterPage() {
           phone:                       form.phone,
           phonecountry_id:             form.phonecountry_id || form.country_id,
           vuesmoyen:                   Number(form.vuesmoyen),
-          lang_id:                     form.lang_id,
-          study_id:                    form.study_id,
-          categories:                  form.categories,
           contentTypes:                form.contentTypes,
-          occupation_id:               form.occupation_id || null,
+          targeting:                   answers ?? undefined,
           password:                    form.password,
           password_confirmation:       form.password_confirmation,
           ambassador_code:             form.ambassador_code || null,
@@ -331,6 +340,19 @@ function WebRegisterPage() {
   }
 
   const STEPS = ["Identité", "Localisation", "Profil", "Sécurité"];
+
+  if (questions) {
+    return (
+      <div className="min-h-screen bg-gray-50 px-4 py-6">
+        <div className="max-w-md mx-auto">
+          <button type="button" onClick={() => setQuestions(null)} className="text-sm text-gray-500 mb-4">← Retour</button>
+          <h1 className="text-xl font-bold text-gray-900">Ton profil</h1>
+          <p className="text-sm text-gray-500 mb-4">Quelques questions pour te proposer les bonnes campagnes.</p>
+          <ProfileWizard questions={questions} doneLabel="Continuer" onDone={(a) => { setAnswers(a); setQuestions(null); setStep(3); }} />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div
@@ -450,42 +472,6 @@ function WebRegisterPage() {
                 placeholder="Ex : 500"
                 error={fe.vuesmoyen}
               />
-              <Select label="Langue de diffusion" value={form.lang_id} onChange={(e) => { set("lang_id", e.target.value); setFe((f) => ({ ...f, lang_id: "" })); }} error={fe.lang_id}>
-                <option value="">Sélectionnez une langue</option>
-                {langs.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
-              </Select>
-              <Select label="Niveau d'études" value={form.study_id} onChange={(e) => { set("study_id", e.target.value); setFe((f) => ({ ...f, study_id: "" })); }} error={fe.study_id}>
-                <option value="">Sélectionnez votre niveau</option>
-                {studies.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
-              </Select>
-              <Select label="Profession" value={form.occupation_id} onChange={(e) => set("occupation_id", e.target.value)}>
-                <option value="">Sélectionnez votre profession</option>
-                {occupations.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}
-              </Select>
-
-              {/* Catégories */}
-              <div>
-                <label className={`block text-sm font-medium mb-2 ${fe.categories ? "text-red-500" : "text-gray-700"}`}>
-                  Catégories WhatsApp <span className="text-gray-400 font-normal">(1 à 4)</span>
-                </label>
-                <div className="grid grid-cols-2 gap-2">
-                  {categories.map((c) => {
-                    const checked = form.categories.includes(c.id);
-                    return (
-                      <button
-                        key={c.id} type="button"
-                        onClick={() => { set("categories", toggleArr(form.categories, c.id, 4)); setFe((f) => ({ ...f, categories: "" })); }}
-                        className={`text-xs px-3 py-2 rounded-lg border text-left transition-colors ${
-                          checked ? "border-green-500 bg-green-50 text-green-700 font-semibold" : "border-gray-200 text-gray-600"
-                        }`}
-                      >
-                        {checked && <span className="mr-1">✓</span>}{c.name}
-                      </button>
-                    );
-                  })}
-                </div>
-                <FieldError msg={fe.categories} />
-              </div>
 
               {/* Types de contenu */}
               <div>

@@ -7,6 +7,7 @@ import { api } from "@/lib/api";
 import { useApp } from "@/contexts/AppContext";
 import NudgeBanners from "@/components/NudgeBanners";
 import IncompleteProfileBanner from "@/components/IncompleteProfileBanner";
+import ProfileConfirmBanner from "@/components/ProfileConfirmBanner";
 import {
   PieChart, Pie, Cell, Tooltip as PieTooltip,
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
@@ -179,6 +180,7 @@ export default function DashboardPage() {
 
       {/* ── Bannière profil incomplet ── */}
       {profileIncomplete && <IncompleteProfileBanner />}
+      <ProfileConfirmBanner />
 
       {/* ── Stats card overlapping hero ── */}
       <div className={`mx-4 bg-white rounded-2xl shadow-sm p-4 ${nudgeBanners.length > 0 || profileIncomplete ? "mt-3" : "-mt-4"}`}>
