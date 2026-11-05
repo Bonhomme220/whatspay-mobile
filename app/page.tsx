@@ -37,12 +37,25 @@ interface LandingStats {
   vues_total_abbrev: string;
   campagnes: string;
   nouveaux_jour: string;
+  /** Barème diffuseur courant : [vues_min, vues_max | null, F par vue]. */
+  payout_tiers?: [number, number | null, number][];
 }
 
 const FALLBACK_STATS: LandingStats = {
-  diffuseurs: "12 000", villes: "20", vues_jour: "1 000 000", vues_jour_abbrev: "1M",
-  vues_total: "10 000 000", vues_total_abbrev: "10M", campagnes: "200", nouveaux_jour: "500",
+  diffuseurs: "65 000", villes: "190", vues_jour: "190 000", vues_jour_abbrev: "190 000",
+  vues_total: "24 500 000", vues_total_abbrev: "24,5M", campagnes: "250", nouveaux_jour: "1 100",
 };
+// Barème en vigueur au 05/11/2026, si l'API ne répond pas.
+const FALLBACK_TIERS: [number, number | null, number][] = [[0, 300, 0.7], [300, 600, 0.6], [600, 1000, 0.4], [1000, null, 0.35]];
+const AMBASSADOR_STEP = 0.01; // + par filleul actif, sur chaque vue (AmbassadorService::gainPerView)
+const EX_MISSIONS = 10;
+const EX_VIEWS = 150;
+const EX_REFERRALS = 50;
+
+const fcfa = (n: number) => n.toLocaleString("fr-FR", { minimumFractionDigits: n % 1 ? 2 : 0, maximumFractionDigits: 2 }).replace(/\u202f/g, " ");
+/** Gain d'une mission au barème par tranche (comme TieredPayout::breakdown). */
+const tieredGain = (tiers: [number, number | null, number][], views: number) =>
+  tiers.reduce((sum, [min, max, rate]) => sum + Math.max(0, Math.min(views, max ?? Infinity) - min) * rate, 0);
 
 const CheckIcon = () => (
   <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#6effa0" strokeWidth={3}>
@@ -59,6 +72,10 @@ const ArrowIcon = ({ color = "currentColor" }: { color?: string }) => (
 export default function Home() {
   const router = useRouter();
   const [stats, setStats] = useState<LandingStats>(FALLBACK_STATS);
+  const tiers = stats.payout_tiers?.length ? stats.payout_tiers : FALLBACK_TIERS;
+  const topRate = tiers[0][2];
+  const exBase = Math.round(EX_MISSIONS * tieredGain(tiers, EX_VIEWS));
+  const exBonus = Math.round(EX_MISSIONS * EX_VIEWS * EX_REFERRALS * AMBASSADOR_STEP);
 
   // Si déjà connecté → espace correspondant au rôle
   useEffect(() => {
@@ -232,7 +249,7 @@ gtag('config', 'AW-745504657');`}
             Gagne de l&apos;argent avec tes <span className="serif">Status WhatsApp</span>
           </h1>
           <p className="hero-sub">
-            Publie des publicités sur ton statut WhatsApp et reçois ton argent directement sur Mobile Money. Télécharge l&apos;appli WhatsPAY pour commencer.
+            Publie des publicités sur ton statut WhatsApp et retire ton argent via Cashless ou Mobile Money. Télécharge l&apos;appli WhatsPAY pour commencer.
           </p>
           <div className="store-btns">
             <a href={PLAY_STORE_URL} target="_blank" rel="noopener noreferrer" className="btn-store">
@@ -293,7 +310,7 @@ gtag('config', 'AW-745504657');`}
         <div className="steps">
           <div className="step">
             <div className="step-n">1</div>
-            <div><p className="step-title">Inscris-toi gratuitement</p><p className="step-desc">Crée ton profil en 2 minutes depuis l&apos;appli. Aucun frais, aucun abonnement.</p></div>
+            <div><p className="step-title">Inscris-toi gratuitement</p><p className="step-desc">Dès 16 ans, depuis l&apos;appli. Remplis ton profil (zone, âge, centres d&apos;intérêt) pour recevoir les campagnes qui te correspondent. Aucun frais.</p></div>
           </div>
           <div className="step">
             <div className="step-n">2</div>
@@ -301,7 +318,7 @@ gtag('config', 'AW-745504657');`}
           </div>
           <div className="step">
             <div className="step-n">3</div>
-            <div><p className="step-title">Reçois ton argent</p><p className="step-desc">Soumets ta capture, on vérifie et tu reçois ton paiement sur Mobile Money.</p></div>
+            <div><p className="step-title">Reçois ton argent</p><p className="step-desc">Soumets ta capture, on vérifie, puis tu retires via Cashless (24 h max) ou Mobile Money, dès 1 000 F.</p></div>
           </div>
         </div>
       </section>
@@ -313,22 +330,28 @@ gtag('config', 'AW-745504657');`}
         <p className="sdesc">Chaque vue vérifiée sur ton statut te rapporte de l&apos;argent.</p>
 
         <div className="price-main">
-          <div className="price-big-num">1 F</div>
+          <div className="price-big-lbl">Jusqu&apos;à</div>
+          <div className="price-big-num">{fcfa(topRate)} F</div>
           <div className="price-big-lbl">par vue vérifiée</div>
-          <p className="price-formula-lbl">Formule :</p>
-          <div className="price-formula">1 F de base + 0,01 F × filleuls actifs = ton gain par vue</div>
+          <p className="price-formula-lbl">Barème par mission :</p>
+          <div className="price-formula">
+            {tiers.map(([min, max, rate]) => (
+              <div key={min}>{max === null ? `Au-delà de ${fcfa(min)} vues` : `${fcfa(min === 0 ? 1 : min)} à ${fcfa(max)} vues`} : {fcfa(rate)} F / vue</div>
+            ))}
+            <div>+ {fcfa(AMBASSADOR_STEP)} F par filleul actif, sur chaque vue</div>
+          </div>
         </div>
 
         <div className="sim-card">
-          <div><div className="sim-name">Sans parrainage</div><div className="sim-calc">10 missions × 150 vues × 1 F</div></div>
-          <div className="sim-total">1 500 F</div>
+          <div><div className="sim-name">Sans parrainage</div><div className="sim-calc">{EX_MISSIONS} missions × {EX_VIEWS} vues × {fcfa(tieredGain(tiers, EX_VIEWS) / EX_VIEWS)} F</div></div>
+          <div className="sim-total">{fcfa(exBase)} F</div>
         </div>
         <div className="sim-card sim-card--featured">
-          <div><div className="sim-name">Avec 50 filleuls</div><div className="sim-calc">10 missions × 150 vues × 1,50 F</div></div>
-          <div className="sim-total">2 250 F</div>
+          <div><div className="sim-name">Avec {EX_REFERRALS} filleuls</div><div className="sim-calc">{EX_MISSIONS} missions × {EX_VIEWS} vues × {fcfa(tieredGain(tiers, EX_VIEWS) / EX_VIEWS + EX_REFERRALS * AMBASSADOR_STEP)} F</div></div>
+          <div className="sim-total">{fcfa(exBase + exBonus)} F</div>
         </div>
 
-        <div className="price-hl" style={{ marginTop: 6 }}><strong>Aucune compétence requise.</strong> Tu publies une image sur ton statut, c&apos;est tout.</div>
+        <div className="price-hl" style={{ marginTop: 6 }}><strong>Aucune compétence requise.</strong> Tu publies une image sur ton statut, c&apos;est tout. Sur les campagnes avec lien, tu gagnes en plus un bonus pour chaque clic unique.</div>
       </section>
 
       {/* AVANTAGES + MOBILE MONEY */}
@@ -338,7 +361,7 @@ gtag('config', 'AW-745504657');`}
         <div style={{ marginTop: 18 }}>
           <div className="pp">
             <div className="pp-ico">🎯</div>
-            <div className="pp-t"><strong>Campagnes adaptées à ton profil</strong><span>Tu reçois seulement les campagnes qui correspondent à ta ville et tes centres d&apos;intérêt.</span></div>
+            <div className="pp-t"><strong>Campagnes adaptées à ton profil</strong><span>Tu reçois les campagnes qui correspondent à ta zone, ton âge et tes centres d&apos;intérêt. Garde ton profil à jour pour en recevoir plus.</span></div>
           </div>
           <div className="pp">
             <div className="pp-ico">📊</div>
@@ -348,15 +371,20 @@ gtag('config', 'AW-745504657');`}
             <div className="pp-ico">✅</div>
             <div className="pp-t"><strong>Paiement garanti à la vue vérifiée</strong><span>Chaque vue validée par notre système est payée — sans surprise, sans retard injustifié.</span></div>
           </div>
+          <div className="pp">
+            <div className="pp-ico">🧾</div>
+            <div className="pp-t"><strong>Paie tes services avec ton solde</strong><span>Au Bénin : facture d&apos;électricité SBEE, crédit et plus encore, directement depuis ton solde WhatsPAY, avec reçu. Sans passer par un retrait.</span></div>
+          </div>
         </div>
         <div style={{ background: "var(--gris-bg)", border: "1.5px solid var(--gris-bd)", borderRadius: 16, padding: "18px 18px", marginTop: 16 }}>
           <p style={{ fontSize: ".75rem", fontWeight: 700, color: "var(--gris-sub)", textTransform: "uppercase", letterSpacing: ".06em", marginBottom: 10 }}>💳 Reçois ton paiement via</p>
           <div>
+            <span className="mm-tag mm-wave">Cashless</span>
             <span className="mm-tag mm-mtn">MTN MoMo</span>
             <span className="mm-tag mm-moov">Moov Money</span>
-            <span className="mm-tag mm-wave">Wave</span>
             <span className="mm-tag mm-orng">Orange Money</span>
           </div>
+          <p style={{ fontSize: ".8125rem", color: "var(--gris-sub)", marginTop: 10, lineHeight: 1.5 }}>Cashless : 24 h max · Mobile Money : jusqu&apos;à 7 jours · retrait dès 1 000 F</p>
         </div>
       </section>
 
@@ -364,7 +392,7 @@ gtag('config', 'AW-745504657');`}
       <section className="sec s-dark">
         <span className="eyebrow">⭐ Programme ambassadeur</span>
         <h2 className="stitle">Parraine et <span className="serif" style={{ color: "#a8f0c0" }}>gagne encore plus</span></h2>
-        <p className="sdesc">Pour chaque filleul actif que tu parraines, ton gain par vue augmente de +0,01 F. Sans plafond.</p>
+        <p className="sdesc">Pour chaque filleul actif que tu parraines, tu gagnes +0,01 F de plus sur chaque vue, en plus de ton barème. Sans plafond.</p>
         <div className="steps">
           <div className="step">
             <div className="step-n">1</div>
@@ -384,7 +412,7 @@ gtag('config', 'AW-745504657');`}
           </div>
         </div>
         <div className="price-hl" style={{ marginTop: 22, background: "rgba(255,255,255,.08)", borderColor: "rgba(255,255,255,.15)", color: "rgba(255,255,255,.85)" }}>
-          <strong style={{ color: "var(--or)" }}>Exemple avec 50 filleuls actifs :</strong><br />1 F + (50 × 0,01 F) = 1,50 F / vue — soit +50 % de revenus.
+          <strong style={{ color: "var(--or)" }}>Exemple avec {EX_REFERRALS} filleuls actifs :</strong><br />+{fcfa(EX_REFERRALS * AMBASSADOR_STEP)} F sur chaque vue — {fcfa(topRate)} F devient {fcfa(topRate + EX_REFERRALS * AMBASSADOR_STEP)} F.
         </div>
       </section>
 
@@ -422,7 +450,7 @@ gtag('config', 'AW-745504657');`}
       <section className="fcta">
         <div className="fcta-in">
           <h2>Prêt à commencer<br /><span className="serif">à gagner de l&apos;argent ?</span></h2>
-          <p>+{stats.diffuseurs} diffuseurs au Bénin, Togo et en Afrique de l&apos;Ouest gagnent déjà de l&apos;argent chaque semaine grâce à leurs Status WhatsApp.</p>
+          <p>+{stats.diffuseurs} diffuseurs au Bénin, en Côte d&apos;Ivoire, au Togo et au Burkina Faso gagnent déjà de l&apos;argent chaque semaine grâce à leurs Status WhatsApp.</p>
           <div className="store-btns">
             <a href={PLAY_STORE_URL} target="_blank" rel="noopener noreferrer" className="btn-store">
               <svg className="btn-store-ico" width="26" height="26" viewBox="0 0 24 24" fill="currentColor">
@@ -446,7 +474,7 @@ gtag('config', 'AW-745504657');`}
               </div>
             </a>
           </div>
-          <p className="fcta-note">Gratuit <span>·</span> Paiement Mobile Money <span>·</span> Sans abonnement</p>
+          <p className="fcta-note">Gratuit <span>·</span> Cashless ou Mobile Money <span>·</span> Sans abonnement</p>
           <p className="fcta-note">Vous êtes annonceur ? <a href="https://whatspay.africa" style={{ color: "var(--blanc)", textDecoration: "underline" }}>Découvrir la plateforme annonceur →</a></p>
         </div>
       </section>
