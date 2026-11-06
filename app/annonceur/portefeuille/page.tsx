@@ -151,7 +151,7 @@ function TxRow({ t, onRequested }: { t: Tx; onRequested: () => void }) {
 }
 
 // Réglage par pays (réseaux, format du numéro, mode) fourni par le serveur : le même que l'espace annonceur.
-interface DepNetwork { code: string; name: string; otp: boolean }
+interface DepNetwork { code: string; name: string; otp: boolean; mode?: "direct" | "redirect"; card?: boolean }
 interface DepCountry { iso: string; name: string; dial: string; digits: number; example: string; mode: "direct" | "redirect"; networks: DepNetwork[] }
 interface DepOptions { default_country: string; countries: DepCountry[]; min_amount?: number }
 type AddFundsRes = { mode?: "direct" | "redirect"; redirect_url?: string; transaction_id?: string; phone?: string; message?: string };
@@ -181,6 +181,8 @@ function RechargeSheet({ onClose, onPaid }: { onClose: () => void; onPaid: () =>
 
   const c = opts?.countries.find((x) => x.iso === country) ?? null;
   const net = c?.networks.find((n) => n.code === network) ?? null;
+  // Mode du réseau choisi (FeexPay : demande sur le téléphone ; carte : page de paiement), sinon celui du pays.
+  const direct = (net?.mode ?? c?.mode) === "direct";
   useEffect(() => { setNetwork(c?.networks[0]?.code ?? ""); setOtp(""); }, [country]); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function submit() {
@@ -274,10 +276,10 @@ function RechargeSheet({ onClose, onPaid }: { onClose: () => void; onPaid: () =>
 
         <button onClick={submit} disabled={loading || !opts}
           className="w-full mt-5 bg-green-600 text-white font-bold py-3 rounded-xl disabled:opacity-50">
-          {waiting ? "En attente de validation…" : loading ? (c?.mode === "direct" ? "Envoi de la demande…" : "Redirection…") : (c?.mode === "direct" ? "Payer" : "Payer via PayPlus")}
+          {waiting ? "En attente de validation…" : loading ? (direct ? "Envoi de la demande…" : "Redirection…") : (direct ? "Payer" : net?.card ? "Payer par carte" : "Payer via PayPlus")}
         </button>
         <p className="text-[11px] text-gray-400 text-center mt-2">
-          {c?.mode === "direct" ? "La demande de paiement arrive sur ton téléphone : valide-la avec ton code secret Mobile Money." : "Tu seras redirigé vers la passerelle sécurisée PayPlus."}
+          {direct ? "La demande de paiement arrive sur ton téléphone : valide-la avec ton code secret Mobile Money." : net?.card ? "Tu seras redirigé vers la page de paiement par carte sécurisée." : "Tu seras redirigé vers la passerelle sécurisée PayPlus."}
         </p>
       </div>
     </div>
