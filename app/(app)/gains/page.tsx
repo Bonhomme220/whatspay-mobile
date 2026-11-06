@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 import CashlessActivationCard, { type CashlessDownload } from "@/components/CashlessActivationCard";
+import OrderProgress, { type Progress } from "@/components/OrderProgress";
 import Pagination from "@/components/Pagination";
 
 const PAGE_SIZE = 10;
@@ -28,6 +29,8 @@ interface PendingWithdrawal {
   phone?: string | null;
   /** Retrait renvoyé par l'équipe : numéro Mobile Money à corriger (jamais le montant). */
   correction?: { reason: string | null; requested_at: string | null } | null;
+  /** Suivi du retrait (étapes, délai réel, action attendue), décrit par le serveur. */
+  progress?: Progress | null;
 }
 /** Option de retrait Cashless (null si la fonctionnalité est désactivée côté serveur). */
 interface CashlessOption {
@@ -95,6 +98,13 @@ export default function GainsPage() {
   }, []);
 
   useEffect(() => { load(); }, [load]);
+  // Retrait en cours : suivi relu au rythme demandé par le serveur.
+  const pendingPoll = data?.pending_withdrawal?.progress?.poll ?? null;
+  useEffect(() => {
+    if (!pendingPoll) return;
+    const id = setInterval(() => load(true), Math.max(15, pendingPoll) * 1000);
+    return () => clearInterval(id);
+  }, [pendingPoll, load]);
 
   const transactions = data?.transactions ?? [];
   const filtered =
@@ -182,7 +192,7 @@ export default function GainsPage() {
 
       {/* ── Portefeuille Cashless créé, à activer ── */}
       {cashlessShown && data.cashless && (
-        <div className="mx-4 -mt-3 mb-3 relative z-10">
+        <div id="cashless-activation" className="mx-4 -mt-3 mb-3 relative z-10">
           <CashlessActivationCard email={data.cashless.login?.email} phone={data.cashless.login?.phone}
             download={data.cashless.download} downloadUrl={data.cashless.download_url} compact />
         </div>
@@ -193,8 +203,20 @@ export default function GainsPage() {
         <WithdrawalCorrection pending={data.pending_withdrawal!} onDone={() => load(true)} flush={cashlessShown} />
       )}
 
-      {/* ── Bannière retrait en cours ── */}
-      {hasPending && !data.pending_withdrawal!.correction && (
+      {/* ── Suivi du retrait en cours ── */}
+      {hasPending && !data.pending_withdrawal!.correction && data.pending_withdrawal!.progress && (
+        <div className={`mx-4 ${cashlessShown ? "" : "-mt-3"} mb-3 relative z-10`}>
+          <OrderProgress progress={data.pending_withdrawal!.progress}
+            onAction={(kind) => {
+              if (kind !== "cashless_activate") return;
+              const card = document.getElementById("cashless-activation");
+              if (card) card.scrollIntoView({ behavior: "smooth", block: "center" }); else setShowWithdraw(true);
+            }} />
+        </div>
+      )}
+
+      {/* ── Bannière retrait en cours (serveur sans suivi) ── */}
+      {hasPending && !data.pending_withdrawal!.correction && !data.pending_withdrawal!.progress && (
         <div className={`mx-4 ${cashlessShown ? "" : "-mt-3"} mb-3 relative z-10`}>
           <div className="bg-amber-50 border border-amber-200 rounded-2xl px-4 py-3 flex items-start gap-3">
             <div className="w-8 h-8 rounded-xl bg-amber-100 flex items-center justify-center flex-shrink-0 mt-0.5">
