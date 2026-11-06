@@ -42,7 +42,7 @@ interface LandingStats {
 }
 
 const FALLBACK_STATS: LandingStats = {
-  diffuseurs: "65 000", villes: "190", vues_jour: "190 000", vues_jour_abbrev: "190 000",
+  diffuseurs: "88 000", villes: "190", vues_jour: "190 000", vues_jour_abbrev: "190 000",
   vues_total: "24 500 000", vues_total_abbrev: "24,5M", campagnes: "250", nouveaux_jour: "1 100",
 };
 // Barème en vigueur au 05/11/2026, si l'API ne répond pas.
@@ -285,7 +285,7 @@ gtag('config', 'AW-745504657');`}
         <div className="stats-g">
           <div className="stat-i">
             <div className="stat-n">+{stats.diffuseurs}</div>
-            <div className="stat-l">Diffuseurs actifs</div>
+            <div className="stat-l">Diffuseurs inscrits</div>
           </div>
           <div className="stat-i">
             <div className="stat-n">+{stats.villes}</div>
@@ -450,7 +450,7 @@ gtag('config', 'AW-745504657');`}
       <section className="fcta">
         <div className="fcta-in">
           <h2>Prêt à commencer<br /><span className="serif">à gagner de l&apos;argent ?</span></h2>
-          <p>+{stats.diffuseurs} diffuseurs au Bénin, en Côte d&apos;Ivoire, au Togo et au Burkina Faso gagnent déjà de l&apos;argent chaque semaine grâce à leurs Status WhatsApp.</p>
+          <p>Rejoins +{stats.diffuseurs} diffuseurs inscrits au Bénin, en Côte d&apos;Ivoire, au Togo et au Burkina Faso et gagne de l&apos;argent grâce à tes Status WhatsApp.</p>
           <div className="store-btns">
             <a href={PLAY_STORE_URL} target="_blank" rel="noopener noreferrer" className="btn-store">
               <svg className="btn-store-ico" width="26" height="26" viewBox="0 0 24 24" fill="currentColor">
