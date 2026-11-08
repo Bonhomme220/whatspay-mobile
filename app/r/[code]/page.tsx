@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import Image from "next/image";
 import { openAppOrFallback } from "@/lib/appLink";
 
@@ -32,9 +32,9 @@ function detectPlatform(): Platform {
  */
 export default function ReferralPage() {
   const params = useParams();
-  const router = useRouter();
   const code = String(params.code ?? "").trim().toUpperCase();
   const [platform, setPlatform] = useState<Platform | null>(null);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     setPlatform(detectPlatform());
@@ -48,20 +48,20 @@ export default function ReferralPage() {
       // quand même : le code reste pré-remplissable manuellement, l'inscription n'est jamais bloquée.
     }
 
+    // Ordinateur : l'inscription des diffuseurs se fait dans l'app (l'ancienne redirection vers
+    // /register?ref= renvoyait ici en boucle) → code copié, liens des stores affichés.
+    if (platform === "other") {
+      setCopied(true);
+      return;
+    }
+
     const toStoreOrWeb = () => {
       if (platform === "android") {
         window.location.href = `${PLAY_STORE_BASE}&referrer=${encodeURIComponent(`ambassador_code=${code}`)}`;
-      } else if (platform === "ios") {
-        window.location.href = APP_STORE_URL;
       } else {
-        router.push(`/register?ref=${encodeURIComponent(code)}`);
+        window.location.href = APP_STORE_URL;
       }
     };
-
-    if (platform === "other") {
-      toStoreOrWeb();
-      return;
-    }
     openAppOrFallback(`r/${encodeURIComponent(code)}`, toStoreOrWeb);
   }
 
@@ -83,13 +83,26 @@ export default function ReferralPage() {
         </p>
       </div>
 
-      <button
-        onClick={go}
-        className="w-full max-w-sm py-4 rounded-2xl text-white font-bold text-sm"
-        style={{ backgroundColor: "#16a34a" }}
-      >
-        {platform === "other" ? "Continuer" : "Télécharger l'application"}
-      </button>
+      {platform === "other" && copied ? (
+        <div className="w-full max-w-sm text-center space-y-3">
+          <p className="text-sm text-gray-600">
+            Code <strong className="text-gray-800">{code}</strong> copié. Installe l&apos;application sur ton téléphone, puis saisis ce code à
+            l&apos;inscription (champ « Code ambassadeur »).
+          </p>
+          <a href={`${PLAY_STORE_BASE}&referrer=${encodeURIComponent(`ambassador_code=${code}`)}`} target="_blank" rel="noreferrer"
+             className="block w-full py-3 rounded-2xl text-white font-bold text-sm" style={{ backgroundColor: "#16a34a" }}>Google Play (Android)</a>
+          <a href={APP_STORE_URL} target="_blank" rel="noreferrer"
+             className="block w-full py-3 rounded-2xl font-bold text-sm border border-gray-200 text-gray-800">App Store (iPhone)</a>
+        </div>
+      ) : (
+        <button
+          onClick={go}
+          className="w-full max-w-sm py-4 rounded-2xl text-white font-bold text-sm"
+          style={{ backgroundColor: "#16a34a" }}
+        >
+          {platform === "other" ? "Copier mon code et installer l'application" : "Télécharger l'application"}
+        </button>
+      )}
     </div>
   );
 }
