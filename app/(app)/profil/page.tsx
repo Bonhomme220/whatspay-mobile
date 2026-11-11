@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, Suspense } from "react";
+import GeoCascade, { GeoValue } from "@/components/GeoCascade";
 import { useRouter, useSearchParams } from "next/navigation";
 import { api, auth } from "@/lib/api";
 import { useApp } from "@/contexts/AppContext";
@@ -529,42 +530,23 @@ function EditSheet({ profile, onClose, onSuccess }: {
   const [selectedCats, setSelectedCats] = useState<string[]>(profile.categories.map((c) => c.id));
 
   const [countries,       setCountries]       = useState<Country[]>([]);
-  const [localities,      setLocalities]      = useState<Locality[]>([]);
-  const [arrondissements, setArrondissements] = useState<Ref[]>([]);
-  const [quartiers,       setQuartiers]       = useState<Ref[]>([]);
+  // Lieu choisi avec le découpage du pays (mêmes niveaux qu'à l'inscription).
+  const [geo, setGeo] = useState<GeoValue>({ ids: [], missing: [] });
   const [categories,      setCategories]      = useState<Category[]>([]);
   const [occupations,     setOccupations]     = useState<Occupation[]>([]);
   const [saving, setSaving]     = useState(false);
   const [error, setError]       = useState<string | null>(null);
 
   useEffect(() => {
-    api.get<Country[]>("/countries").then(setCountries).catch(() => {});
+    // Pays ouverts seulement (comme à l'inscription) ; le pays actuel reste affiché s'il ne l'est plus.
+    api.get<Country[]>("/countries?with_cities=1").then((list) => {
+      const cur = profile.country;
+      setCountries(cur && !list.some((c) => String(c.id) === String(cur.id)) ? [...list, cur as Country] : list);
+    }).catch(() => {});
     api.get<Category[]>("/categories").then(setCategories).catch(() => {});
     api.get<Occupation[]>("/occupations").then(setOccupations).catch(() => {});
   }, []);
 
-  useEffect(() => {
-    if (!form.country_id) return;
-    api.get<{ data: Locality[] }>(`/localities/by-country/${form.country_id}`)
-      .then((r) => setLocalities(r.data))
-      .catch(() => {});
-  }, [form.country_id]);
-
-  // Arrondissements → reload quand la localité change
-  useEffect(() => {
-    if (!form.locality_id) { setArrondissements([]); return; }
-    api.get<{ data: Ref[] }>(`/localities/${form.locality_id}/arrondissements`)
-      .then((r) => setArrondissements(r.data ?? []))
-      .catch(() => setArrondissements([]));
-  }, [form.locality_id]);
-
-  // Quartiers → reload quand l'arrondissement change
-  useEffect(() => {
-    if (!form.arrondissement_locality_id) { setQuartiers([]); return; }
-    api.get<{ data: Ref[] }>(`/arrondissements/${form.arrondissement_locality_id}/quartiers`)
-      .then((r) => setQuartiers(r.data ?? []))
-      .catch(() => setQuartiers([]));
-  }, [form.arrondissement_locality_id]);
 
   function toggleCat(id: string) {
     setSelectedCats((prev) =>
@@ -574,6 +556,7 @@ function EditSheet({ profile, onClose, onSuccess }: {
 
   async function save(e: React.FormEvent) {
     e.preventDefault();
+    if (geo.missing.length) { setError(`À choisir : ${geo.missing.join(", ")}.`); return; }
     setSaving(true);
     setError(null);
     try {
@@ -583,6 +566,7 @@ function EditSheet({ profile, onClose, onSuccess }: {
         occupation_id: form.occupation_id || null,
         arrondissement_locality_id: form.arrondissement_locality_id || null,
         quartier_locality_id:       form.quartier_locality_id       || null,
+        ...(geo.ids.length ? { geo_ids: geo.ids } : {}),
       });
       onSuccess();
     } catch (err: unknown) {
@@ -628,7 +612,7 @@ function EditSheet({ profile, onClose, onSuccess }: {
             <label className="text-gray-500 text-xs font-semibold uppercase tracking-wide block mb-1.5">Pays</label>
             <select
               value={form.country_id}
-              onChange={(e) => setForm({ ...form, country_id: e.target.value, locality_id: "" })}
+              onChange={(e) => setForm({ ...form, country_id: e.target.value, locality_id: "", arrondissement_locality_id: "", quartier_locality_id: "" })}
               className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-green-300"
             >
               <option value="">-- Sélectionner --</option>
@@ -636,50 +620,12 @@ function EditSheet({ profile, onClose, onSuccess }: {
             </select>
           </div>
 
-          {/* Localité */}
-          {localities.length > 0 && (
-            <div>
-              <label className="text-gray-500 text-xs font-semibold uppercase tracking-wide block mb-1.5">Localité</label>
-              <select
-                value={form.locality_id}
-                onChange={(e) => setForm({ ...form, locality_id: e.target.value, arrondissement_locality_id: "", quartier_locality_id: "" })}
-                className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-green-300"
-              >
-                <option value="">-- Sélectionner --</option>
-                {localities.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
-              </select>
-            </div>
-          )}
-
-          {/* Arrondissement */}
-          {arrondissements.length > 0 && (
-            <div>
-              <label className="text-gray-500 text-xs font-semibold uppercase tracking-wide block mb-1.5">Arrondissement</label>
-              <select
-                value={form.arrondissement_locality_id}
-                onChange={(e) => setForm({ ...form, arrondissement_locality_id: e.target.value, quartier_locality_id: "" })}
-                className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-green-300"
-              >
-                <option value="">-- Sélectionner --</option>
-                {arrondissements.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
-              </select>
-            </div>
-          )}
-
-          {/* Quartier */}
-          {quartiers.length > 0 && (
-            <div>
-              <label className="text-gray-500 text-xs font-semibold uppercase tracking-wide block mb-1.5">Quartier</label>
-              <select
-                value={form.quartier_locality_id}
-                onChange={(e) => setForm({ ...form, quartier_locality_id: e.target.value })}
-                className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-green-300"
-              >
-                <option value="">-- Sélectionner --</option>
-                {quartiers.map((q) => <option key={q.id} value={q.id}>{q.name}</option>)}
-              </select>
-            </div>
-          )}
+          {/* Lieu : niveaux du pays (Console › Pays) */}
+          {form.country_id ? (
+            <GeoCascade key={form.country_id} countryId={form.country_id}
+              initial={[form.locality_id, form.arrondissement_locality_id, form.quartier_locality_id].filter(Boolean).map(Number)}
+              onChange={setGeo} />
+          ) : null}
 
           {/* Profession */}
           {occupations.length > 0 && (
