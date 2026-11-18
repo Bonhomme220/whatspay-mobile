@@ -39,6 +39,9 @@ interface LandingStats {
   nouveaux_jour: string;
   /** Barème diffuseur courant : [vues_min, vues_max | null, F par vue]. */
   payout_tiers?: [number, number | null, number][];
+  /** Bonus ambassadeur réglé dans la console : + par filleul actif et plafond, en F par vue. */
+  ambassador_per_referral?: number;
+  ambassador_cap?: number;
 }
 
 const FALLBACK_STATS: LandingStats = {
@@ -47,10 +50,11 @@ const FALLBACK_STATS: LandingStats = {
 };
 // Barème en vigueur au 05/11/2026, si l'API ne répond pas.
 const FALLBACK_TIERS: [number, number | null, number][] = [[0, 300, 0.7], [300, 600, 0.6], [600, 1000, 0.4], [1000, null, 0.35]];
-const AMBASSADOR_STEP = 0.01; // + par filleul actif, sur chaque vue (AmbassadorService::gainPerView)
+// Bonus ambassadeur si l'API ne répond pas (sinon : réglage de la console, envoyé par /api/landing-stats).
+const FALLBACK_AMBASSADOR = { per: 0.01, cap: 0.2 };
 const EX_MISSIONS = 10;
 const EX_VIEWS = 150;
-const EX_REFERRALS = 50;
+const EX_REFERRALS = 20;
 
 const fcfa = (n: number) => n.toLocaleString("fr-FR", { minimumFractionDigits: n % 1 ? 2 : 0, maximumFractionDigits: 2 }).replace(/\u202f/g, " ");
 /** Gain d'une mission au barème par tranche (comme TieredPayout::breakdown). */
@@ -74,8 +78,14 @@ export default function Home() {
   const [stats, setStats] = useState<LandingStats>(FALLBACK_STATS);
   const tiers = stats.payout_tiers?.length ? stats.payout_tiers : FALLBACK_TIERS;
   const topRate = tiers[0][2];
+  const ambPer = stats.ambassador_per_referral ?? FALLBACK_AMBASSADOR.per;
+  const ambCap = stats.ambassador_cap ?? FALLBACK_AMBASSADOR.cap;
+  // Bonus par vue pour EX_REFERRALS filleuls, plafonné comme dans AmbassadorService::bonusPerView.
+  const AMBASSADOR_STEP = ambPer;
+  const exBonusPerView = ambCap > 0 ? Math.min(EX_REFERRALS * ambPer, ambCap) : EX_REFERRALS * ambPer;
+  const capText = ambCap > 0 ? ` (bonus plafonné à +${fcfa(ambCap)} F par vue)` : "";
   const exBase = Math.round(EX_MISSIONS * tieredGain(tiers, EX_VIEWS));
-  const exBonus = Math.round(EX_MISSIONS * EX_VIEWS * EX_REFERRALS * AMBASSADOR_STEP);
+  const exBonus = Math.round(EX_MISSIONS * EX_VIEWS * exBonusPerView);
 
   // Si déjà connecté → espace correspondant au rôle
   useEffect(() => {
@@ -338,7 +348,7 @@ gtag('config', 'AW-745504657');`}
             {tiers.map(([min, max, rate]) => (
               <div key={min}>{max === null ? `Au-delà de ${fcfa(min)} vues` : `${fcfa(min === 0 ? 1 : min)} à ${fcfa(max)} vues`} : {fcfa(rate)} F / vue</div>
             ))}
-            <div>+ {fcfa(AMBASSADOR_STEP)} F par filleul actif, sur chaque vue</div>
+            <div>+ {fcfa(AMBASSADOR_STEP)} F par filleul actif, sur chaque vue{capText}</div>
           </div>
         </div>
 
@@ -347,7 +357,7 @@ gtag('config', 'AW-745504657');`}
           <div className="sim-total">{fcfa(exBase)} F</div>
         </div>
         <div className="sim-card sim-card--featured">
-          <div><div className="sim-name">Avec {EX_REFERRALS} filleuls</div><div className="sim-calc">{EX_MISSIONS} missions × {EX_VIEWS} vues × {fcfa(tieredGain(tiers, EX_VIEWS) / EX_VIEWS + EX_REFERRALS * AMBASSADOR_STEP)} F</div></div>
+          <div><div className="sim-name">Avec {EX_REFERRALS} filleuls</div><div className="sim-calc">{EX_MISSIONS} missions × {EX_VIEWS} vues × {fcfa(tieredGain(tiers, EX_VIEWS) / EX_VIEWS + exBonusPerView)} F</div></div>
           <div className="sim-total">{fcfa(exBase + exBonus)} F</div>
         </div>
 
@@ -392,7 +402,7 @@ gtag('config', 'AW-745504657');`}
       <section className="sec s-dark">
         <span className="eyebrow">⭐ Programme ambassadeur</span>
         <h2 className="stitle">Parraine et <span className="serif" style={{ color: "#a8f0c0" }}>gagne encore plus</span></h2>
-        <p className="sdesc">Pour chaque filleul actif que tu parraines, tu gagnes +0,01 F de plus sur chaque vue, en plus de ton barème. Sans plafond.</p>
+        <p className="sdesc">Pour chaque filleul actif que tu parraines, tu gagnes +{fcfa(AMBASSADOR_STEP)} F de plus sur chaque vue, en plus de ton barème{capText}.</p>
         <div className="steps">
           <div className="step">
             <div className="step-n">1</div>
@@ -408,11 +418,11 @@ gtag('config', 'AW-745504657');`}
           </div>
           <div className="step">
             <div className="step-n">4</div>
-            <div><p className="step-title">Ton gain augmente</p><p className="step-desc">+0,01 F par filleul actif, sur chaque vue. Sans plafond.</p></div>
+            <div><p className="step-title">Ton gain augmente</p><p className="step-desc">+{fcfa(AMBASSADOR_STEP)} F par filleul actif, sur chaque vue{capText}.</p></div>
           </div>
         </div>
         <div className="price-hl" style={{ marginTop: 22, background: "rgba(255,255,255,.08)", borderColor: "rgba(255,255,255,.15)", color: "rgba(255,255,255,.85)" }}>
-          <strong style={{ color: "var(--or)" }}>Exemple avec {EX_REFERRALS} filleuls actifs :</strong><br />+{fcfa(EX_REFERRALS * AMBASSADOR_STEP)} F sur chaque vue — {fcfa(topRate)} F devient {fcfa(topRate + EX_REFERRALS * AMBASSADOR_STEP)} F.
+          <strong style={{ color: "var(--or)" }}>Exemple avec {EX_REFERRALS} filleuls actifs :</strong><br />+{fcfa(exBonusPerView)} F sur chaque vue — {fcfa(topRate)} F devient {fcfa(topRate + exBonusPerView)} F.
         </div>
       </section>
 

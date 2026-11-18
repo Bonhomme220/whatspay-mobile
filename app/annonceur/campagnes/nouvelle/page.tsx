@@ -6,9 +6,10 @@ import { api } from "@/lib/api";
 import { fmt } from "@/lib/annonceur";
 import MultiSelect, { type Option } from "@/components/annonceur/MultiSelect";
 
-const VIEW_PRICE = 1.2;          // F / vue — prix plateforme (CampaignMetrics::defaultViewPrice côté serveur)
-const MIN_VIEWS_PER_DAY = 3000;  // minimum 3 000 vues PAR JOUR (vérifié aussi côté serveur)
-const MIN_PER_DAY = MIN_VIEWS_PER_DAY * VIEW_PRICE; // budget minimum par jour
+// Prix par vue et minimum par jour : envoyés par le serveur (Console › Argent › Zones tarifaires,
+// zone de l'annonceur). Valeurs de repli seulement si l'API ne répond pas.
+const FALLBACK_PRICING = { view_price: 1.2, min_views_per_day: 3000, min_per_day: 3600 };
+interface Pricing { view_price: number; min_views_per_day: number; min_per_day: number }
 
 type MediaType = "image" | "video" | "image_link" | "video_link";
 
@@ -39,12 +40,19 @@ export default function NouvelleCampagnePage() {
   const [selOcc, setSelOcc] = useState<string[]>([]);
   const [selCat, setSelCat] = useState<string[]>([]);
 
+  const [pricing, setPricing] = useState<Pricing>(FALLBACK_PRICING);
   const [estimate, setEstimate] = useState<EstimateResp | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
 
   // Chargement référentiels
+  useEffect(() => {
+    api.get<Partial<Pricing>>("/announcer/espace/campaigns/form")
+      .then((r) => { if (r?.view_price) setPricing({ view_price: r.view_price, min_views_per_day: r.min_views_per_day ?? FALLBACK_PRICING.min_views_per_day, min_per_day: r.min_per_day ?? Math.ceil((r.min_views_per_day ?? FALLBACK_PRICING.min_views_per_day) * r.view_price) }); })
+      .catch(() => {});
+  }, []);
+
   useEffect(() => {
     api.get<Option[]>("/categories").then(setCategories).catch(() => {});
     api.get<Option[]>("/occupations").then(setOccupations).catch(() => {});
@@ -89,9 +97,9 @@ export default function NouvelleCampagnePage() {
     return d > 0 ? d : 0;
   }, [startdate, enddate]);
 
-  const minBudget = nbDays > 0 ? MIN_PER_DAY * nbDays : MIN_PER_DAY;
+  const minBudget = nbDays > 0 ? pricing.min_per_day * nbDays : pricing.min_per_day;
   const budgetNum = parseFloat(budget) || 0;
-  const estimatedViews = budgetNum > 0 ? Math.floor(budgetNum / VIEW_PRICE) : 0;
+  const estimatedViews = budgetNum > 0 ? Math.floor(budgetNum / pricing.view_price) : 0;
 
   const needsFile = mediaType === "image" || mediaType === "video";
   const needsUrl = mediaType === "image_link" || mediaType === "video_link";
@@ -215,7 +223,7 @@ export default function NouvelleCampagnePage() {
           </div>
           {nbDays > 0 && (
             <p className="text-xs text-gray-500 mt-2">
-              {nbDays} jour(s) · budget minimum <b>{fmt(minBudget)} F</b> ({fmt(MIN_VIEWS_PER_DAY)} vues/jour à {VIEW_PRICE} F/vue)
+              {nbDays} jour(s) · budget minimum <b>{fmt(minBudget)} F</b> ({fmt(pricing.min_views_per_day)} vues/jour à {pricing.view_price} F/vue)
             </p>
           )}
         </Section>
@@ -226,7 +234,7 @@ export default function NouvelleCampagnePage() {
           {budgetNum > 0 && (
             <div className="mt-2 bg-green-50 rounded-lg p-3">
               <p className="text-sm text-green-800 font-semibold">≈ {fmt(estimatedViews)} vues visées</p>
-              <p className="text-xs text-green-600">à {VIEW_PRICE} F / vue · budget réservé sur votre portefeuille à la validation, part non consommée remboursée à la clôture</p>
+              <p className="text-xs text-green-600">à {pricing.view_price} F / vue · budget réservé sur votre portefeuille à la validation, part non consommée remboursée à la clôture</p>
               {budgetNum < minBudget && (
                 <p className="text-xs text-red-500 mt-1">Budget sous le minimum ({fmt(minBudget)} F).</p>
               )}
