@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { api } from "@/lib/api";
+import { listenPrivate, realtimeConnected } from "@/lib/realtime";
 
 interface Message { id: string; message: string; is_admin: boolean; created_at: string; }
 interface TicketDetail {
@@ -39,9 +40,13 @@ export default function MediaPartnerTicketDetailPage() {
   const ticketRef = useRef<TicketDetail | null>(null);
   ticketRef.current = ticket;
   useEffect(() => {
-    const tick = async () => {
+    let lastPoll = 0;
+    const tick = async (force = false) => {
       const cur = ticketRef.current;
       if (!cur || document.hidden) return;
+      // Connexion instantanée active : l'événement suffit, l'interrogation n'est plus qu'un secours (30 s).
+      if (!force && realtimeConnected() && Date.now() - lastPoll < 30000) return;
+      lastPoll = Date.now();
       const last = cur.messages.at(-1)?.created_at;
       try {
         const d = await api.get<TicketDetail>(`/tickets/${id}${last ? `?after=${encodeURIComponent(last)}` : ""}`);
@@ -51,8 +56,12 @@ export default function MediaPartnerTicketDetailPage() {
         if (fresh.length) setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
       } catch { /* réseau : prochain tour */ }
     };
-    const timer = window.setInterval(tick, 4000);
-    return () => window.clearInterval(timer);
+    const timer = window.setInterval(() => tick(), 4000);
+    const stop = listenPrivate(`ticket.${id}`, "ticket.updated", (e) => {
+      setTicket((t) => (t ? { ...t, ai_typing: !!e.ai_typing, status: (e.status as string) ?? t.status } : t));
+      tick(true);
+    });
+    return () => { window.clearInterval(timer); stop(); };
   }, [id]);
 
   async function sendReply(e: React.FormEvent) {
