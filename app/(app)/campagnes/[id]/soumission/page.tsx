@@ -98,6 +98,8 @@ export default function SoumissionPage() {
   const isRejected  = mission.status === "SUBMISSION_REJECTED";
   const isOnboarding = task?.is_onboarding ?? false;
   const isCivic      = task?.is_civic ?? false;
+  // Non rémunérée (citoyenne, découverte, standard non payé) : ni montant ni repli « vues × 1 F ».
+  const isFree       = isCivic || isOnboarding || mission.gain_breakdown?.state === "free";
   // Pas de réclamation possible sur une campagne citoyenne
   const canComplain = (isAccepted || isRejected) && !isOnboarding && !isCivic && !mission.complaint;
 
@@ -122,8 +124,8 @@ export default function SoumissionPage() {
             <div className="text-white/70 text-[10px] mt-0.5">Vues soumises</div>
           </div>
           <div className="flex-1 py-2.5 px-3 rounded-xl" style={{ background: "rgba(255,255,255,0.15)" }}>
-            <div className="text-white font-bold text-lg">{(mission.gain || mission.expected_gain).toLocaleString("fr-FR")} F</div>
-            <div className="text-white/70 text-[10px] mt-0.5">{isAccepted ? "Gain crédité" : "Gain prévu"}</div>
+            <div className="text-white font-bold text-lg">{isFree ? "Non rémunérée" : `${(mission.gain || mission.expected_gain).toLocaleString("fr-FR")} F`}</div>
+            <div className="text-white/70 text-[10px] mt-0.5">{isFree ? "Aucun gain" : isAccepted ? "Gain crédité" : "Gain prévu"}</div>
           </div>
         </div>
       </div>
@@ -156,13 +158,13 @@ export default function SoumissionPage() {
         </div>
 
         {/* ── Détail du calcul de paiement : calcul serveur (même que le paiement réel) ── */}
-        {mission.gain_breakdown && !isCivic && (
+        {mission.gain_breakdown && !isFree && (
           <div className="bg-white rounded-2xl shadow-sm p-3">
             <GainBreakdownCard breakdown={mission.gain_breakdown} defaultOpen />
           </div>
         )}
         {/* Repli (API sans gain_breakdown) */}
-        {!mission.gain_breakdown && (mission.status === "SUBMISSION_ACCEPTED" || mission.status === "SUBMITED") && (
+        {!isFree && !mission.gain_breakdown && (mission.status === "SUBMISSION_ACCEPTED" || mission.status === "SUBMITED") && (
           <div className="bg-white rounded-2xl shadow-sm p-4">
             <p className="text-gray-500 text-[10px] font-bold uppercase tracking-widest mb-2">Détail du gain</p>
             {mission.payout_mode === "tiered" && mission.payout_breakdown && mission.payout_breakdown.length > 0 ? (

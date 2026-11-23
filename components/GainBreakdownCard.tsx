@@ -3,7 +3,7 @@
 import { useState } from "react";
 
 export interface GainBreakdown {
-  state: "paid" | "estimate" | "example";
+  state: "paid" | "estimate" | "example" | "free";
   basis: string;
   lines: { label: string; detail: string; amount: number }[];
   total: number;
