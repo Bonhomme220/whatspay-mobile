@@ -12,6 +12,8 @@ import Image from "next/image";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 interface Ref { id: string; name: string; }
+/** Pays (/geo/countries) : « cashless » = Cashless activé dans ce pays (sinon l'inscription n'en parle pas). */
+interface CountryRef extends Ref { cashless?: boolean }
 
 interface FormData {
   firstname: string; lastname: string; email: string; birthdate: string;
@@ -131,7 +133,7 @@ function WebRegisterPage() {
   }, [form.ambassador_code]);
 
   // Référentiels
-  const [countries,        setCountries]        = useState<Ref[]>([]);
+  const [countries,        setCountries]        = useState<CountryRef[]>([]);
   const [geo, setGeo] = useState<GeoValue>({ ids: [], missing: [] });
   const [localities,       setLocalities]       = useState<Ref[]>([]);
   const [arrondissements,  setArrondissements]  = useState<Ref[]>([]);
@@ -145,7 +147,7 @@ function WebRegisterPage() {
   useEffect(() => {
     Promise.all([
       // Pays ouverts aux inscriptions (Console › Pays).
-      api.get<{ items: Ref[] }>("/geo/countries").then((r) => r.items ?? []),
+      api.get<{ items: CountryRef[] }>("/geo/countries").then((r) => r.items ?? []),
       api.get<Ref[]>("/categories"),
       api.get<Ref[]>("/langs"),
       api.get<Ref[]>("/studies"),
@@ -529,9 +531,9 @@ function WebRegisterPage() {
                 />
                 <FieldError msg={fe.password_confirmation} />
               </div>
-              <p className="text-gray-500 text-[11px] leading-snug bg-green-50 border border-green-100 rounded-lg px-3 py-2">
+              {countries.find((c) => c.id === form.country_id)?.cashless === true && <p className="text-gray-500 text-[11px] leading-snug bg-green-50 border border-green-100 rounded-lg px-3 py-2">
                 💸 En créant ton compte, WhatsPAY t&apos;ouvre aussi un portefeuille <strong>Cashless</strong> (avec ton nom, ton téléphone, ton email et ton adresse) pour recevoir tes retraits en quelques secondes. Tu l&apos;activeras plus tard en un clic.
-              </p>
+              </p>}
             </>
           )}
 
