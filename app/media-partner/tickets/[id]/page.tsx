@@ -8,6 +8,7 @@ interface Message { id: string; message: string; is_admin: boolean; created_at: 
 interface TicketDetail {
   id: string; subject: string; status: string; created_at: string;
   messages: Message[];
+  ai_typing?: boolean;
 }
 
 function fmtDate(d: string) {
@@ -33,6 +34,26 @@ export default function MediaPartnerTicketDetailPage() {
   }, [id]);
 
   useEffect(() => { load(); }, [load]);
+
+  // Messagerie en direct : nouveaux messages (équipe, assistant) récupérés toutes les 4 s tant que la page est visible.
+  const ticketRef = useRef<TicketDetail | null>(null);
+  ticketRef.current = ticket;
+  useEffect(() => {
+    const tick = async () => {
+      const cur = ticketRef.current;
+      if (!cur || document.hidden) return;
+      const last = cur.messages.at(-1)?.created_at;
+      try {
+        const d = await api.get<TicketDetail>(`/tickets/${id}${last ? `?after=${encodeURIComponent(last)}` : ""}`);
+        const known = new Set(cur.messages.map((m) => m.id));
+        const fresh = (d.messages ?? []).filter((m) => !known.has(m.id));
+        setTicket((t) => (t ? { ...t, status: d.status, ai_typing: d.ai_typing, messages: fresh.length ? [...t.messages, ...fresh] : t.messages } : t));
+        if (fresh.length) setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
+      } catch { /* réseau : prochain tour */ }
+    };
+    const timer = window.setInterval(tick, 4000);
+    return () => window.clearInterval(timer);
+  }, [id]);
 
   async function sendReply(e: React.FormEvent) {
     e.preventDefault();
@@ -92,6 +113,11 @@ export default function MediaPartnerTicketDetailPage() {
             </div>
           </div>
         ))}
+        {ticket.ai_typing && (
+          <div className="flex justify-start">
+            <div className="bg-white shadow-sm rounded-2xl rounded-tl-sm px-4 py-3 text-sm text-gray-400 italic">L&apos;assistant écrit…</div>
+          </div>
+        )}
         <div ref={bottomRef} />
       </div>
 
