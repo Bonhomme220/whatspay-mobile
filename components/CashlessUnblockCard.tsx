@@ -2,24 +2,23 @@
 
 /**
  * Déblocage du compte Cashless par le diffuseur lui-même : cause exacte (servie par le serveur) et
- * actions possibles — « J'ai activé, vérifier », « Relier mon compte (cashtag) », « Corriger mon email »,
- * « Réessayer l'ouverture ». Le conflit (portefeuille relié à un autre compte) n'a pas d'action.
+ * actions possibles — « J'ai activé, vérifier », « Relier mon compte (cashtag) »,
+ * « Réessayer l'ouverture » (jamais de changement d'email : il ne change pas après la création du compte). Le conflit (portefeuille relié à un autre compte) n'a pas d'action.
  */
 import { useState } from "react";
 import { api } from "@/lib/api";
 
-type Action = "refresh" | "link" | "fix_email" | "retry";
+type Action = "refresh" | "link" | "retry";
 export interface CashlessUnblock { problem: string; actions: Action[]; conflict?: boolean }
 
 export default function CashlessUnblockCard<T extends { unblock?: CashlessUnblock | null }>({ option, onChange }: { option: T; onChange: (o: T) => void }) {
   const u = option.unblock;
   const [cashtag, setCashtag] = useState("");
-  const [email, setEmail] = useState("");
   const [busy, setBusy] = useState<Action | null>(null);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   if (!u) return null;
 
-  const run = async (action: Action, extra: { cashtag?: string; email?: string } = {}) => {
+  const run = async (action: Action, extra: { cashtag?: string } = {}) => {
     setBusy(action); setMsg(null);
     try {
       const res = await api.post<{ success: boolean; message: string; cashless: T }>("/cashless/unblock", { action, ...extra });
@@ -49,16 +48,6 @@ export default function CashlessUnblockCard<T extends { unblock?: CashlessUnbloc
           <button type="button" className={`${btn} bg-green-50 text-green-800`} disabled={!!busy} onClick={() => run("retry")}>
             {busy === "retry" ? "Ouverture…" : "Réessayer l'ouverture"}
           </button>
-        )}
-        {u.actions.includes("fix_email") && (
-          <div>
-            <label className="text-xs font-semibold text-gray-500">Ton email (corrigé)</label>
-            <input value={email} onChange={(e) => setEmail(e.target.value)} type="email" autoCapitalize="none" placeholder="prenom@gmail.com"
-              className="mt-1 w-full border border-gray-200 rounded-xl px-3 py-2 text-sm" />
-            <button type="button" className={`${btn} mt-2 bg-green-700 text-white`} disabled={!!busy || !email.trim()} onClick={() => run("fix_email", { email: email.trim() })}>
-              {busy === "fix_email" ? "Correction…" : "Corriger et ouvrir mon portefeuille"}
-            </button>
-          </div>
         )}
         {u.actions.includes("link") && (
           <div>
