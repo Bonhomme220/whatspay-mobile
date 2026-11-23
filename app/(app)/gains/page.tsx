@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 import CashlessActivationCard, { type CashlessDownload } from "@/components/CashlessActivationCard";
+import CashlessUnblockCard, { type CashlessUnblock } from "@/components/CashlessUnblockCard";
 import OrderProgress, { type Progress } from "@/components/OrderProgress";
 import Pagination from "@/components/Pagination";
 
@@ -51,6 +52,7 @@ interface CashlessOption {
   instant?: { available: boolean; fee: number; label: string; free_label: string; title?: string; free_title?: string };
   logos: { cashless: string; mobile_money: string };
   delays: { cashless: string; mobile_money: string };
+  unblock?: CashlessUnblock | null;
 }
 interface GainsData {
   balance: number;
@@ -191,6 +193,11 @@ export default function GainsPage() {
       </div>
 
       {/* ── Portefeuille Cashless créé, à activer ── */}
+      {data.cashless?.enabled && !data.cashless?.ready && data.cashless?.unblock && (
+        <div className="mx-4 -mt-3 mb-3 relative z-10">
+          <CashlessUnblockCard option={data.cashless} onChange={(o) => setData((d) => (d ? { ...d, cashless: o } : d))} />
+        </div>
+      )}
       {cashlessShown && data.cashless && (
         <div id="cashless-activation" className="mx-4 -mt-3 mb-3 relative z-10">
           <CashlessActivationCard email={data.cashless.login?.email} phone={data.cashless.login?.phone}
@@ -554,6 +561,7 @@ function WithdrawModal({ balance, hasPending, pendingAmount, cashless: initialCa
 
             {viaCashless ? (
               <div className="space-y-2">
+                {!cashless?.ready && cashless?.unblock && <CashlessUnblockCard option={cashless} onChange={setCashless} />}
                 {cashless?.created ? (
                   <CashlessActivationCard email={cashless.login?.email} phone={cashless.login?.phone}
                     download={cashless.download} downloadUrl={cashless.download_url} />
