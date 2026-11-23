@@ -288,25 +288,41 @@ export default function SoumissionPage() {
 }
 
 // ── ComplaintModal ─────────────────────────────────────────────────────────────
+// Dépôt guidé (23/11/2026) : le diffuseur voit ce qui lui est reproché, sa capture et la légende attendue, puis
+// choisit ce qu'il conteste. Le texte devient un complément (obligatoire seulement pour « Autre chose »).
+interface ComplaintInfo {
+  eligible: boolean; status: string; mission: string | null; reason_title: string | null; reason: string | null;
+  legend: string; proof_url: string | null; vues: number; gain: number; options: { code: string; label: string }[];
+}
 function ComplaintModal({ assignmentId, onClose, onSuccess }: {
   assignmentId: string;
   onClose: () => void;
   onSuccess: () => void;
 }) {
+  const [info, setInfo]         = useState<ComplaintInfo | null>(null);
+  const [code, setCode]         = useState("");
   const [message, setMessage]   = useState("");
   const [submitting, setSub]    = useState(false);
   const [error, setError]       = useState<string | null>(null);
   const [success, setSuccess]   = useState(false);
 
+  useEffect(() => {
+    api.get<ComplaintInfo>(`/missions/${assignmentId}/complaint`).then(setInfo).catch(() => setInfo(null));
+  }, [assignmentId]);
+
+  const guided = !!info?.options?.length;
+  const needText = !guided || code === "other";
+  const ready = guided ? !!code && (!needText || message.trim().length >= 20) : message.trim().length >= 20;
+
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    if (message.length < 20) { setError("Minimum 20 caractères."); return; }
+    if (!ready) { setError(guided && !code ? "Choisis ce que tu contestes." : "Explique en au moins 20 caractères."); return; }
     setSub(true);
     setError(null);
     try {
-      await api.post(`/missions/${assignmentId}/complaint`, { message });
+      await api.post(`/missions/${assignmentId}/complaint`, guided ? { contest_code: code, message: message.trim() || undefined } : { message });
       setSuccess(true);
-      setTimeout(onSuccess, 1800);
+      setTimeout(onSuccess, 2200);
     } catch (err: unknown) {
       const e = err as { message?: string };
       setError(e?.message ?? "Une erreur est survenue.");
@@ -317,24 +333,18 @@ function ComplaintModal({ assignmentId, onClose, onSuccess }: {
 
   return (
     <div className="fixed inset-0 z-50 flex items-end" style={{ background: "rgba(0,0,0,0.55)" }} onClick={onClose}>
-      <div className="w-full bg-white rounded-t-3xl px-5 pt-6 pb-10" onClick={(e) => e.stopPropagation()}>
+      <div className="w-full bg-white rounded-t-3xl px-5 pt-6 pb-10 max-h-[92vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
         <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-5" />
 
-        <div className="flex items-center gap-3 mb-4">
-          <div className="w-10 h-10 rounded-xl bg-orange-100 flex items-center justify-center flex-shrink-0">
-            <svg className="w-5 h-5 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6H13l-1-1H5a2 2 0 00-2 2zm9-13.5V9" />
-            </svg>
-          </div>
-          <div>
-            <h2 className="text-gray-800 font-bold text-base">Déposer une réclamation</h2>
-            <p className="text-gray-400 text-xs">L'équipe examinera votre demande et vous répondra.</p>
-          </div>
+        <div className="mb-4">
+          <h2 className="text-gray-800 font-bold text-base">Déposer une réclamation</h2>
+          <p className="text-gray-400 text-xs">Vérifie d&apos;abord ta capture : la plupart des rejets sont justifiés.</p>
         </div>
 
         {success ? (
           <div className="bg-green-50 border border-green-200 rounded-2xl p-4 text-center">
-            <p className="text-green-700 font-semibold text-sm">Réclamation envoyée avec succès.</p>
+            <p className="text-green-700 font-semibold text-sm">Réclamation envoyée.</p>
+            <p className="text-green-700 text-xs mt-1">Tu recevras une notification avec la réponse.</p>
           </div>
         ) : (
           <form onSubmit={submit} className="space-y-4">
@@ -344,34 +354,68 @@ function ComplaintModal({ assignmentId, onClose, onSuccess }: {
               </div>
             )}
 
+            {info && (
+              <div className="space-y-3">
+                {info.reason && (
+                  <div className="bg-red-50 border border-red-100 rounded-xl px-4 py-3">
+                    <p className="text-[11px] font-bold uppercase tracking-wide text-red-500 mb-1">{info.status === "SUBMISSION_ACCEPTED" ? "Ta mission" : "Ce qui a été reproché"}</p>
+                    <p className="text-xs text-red-800 leading-relaxed">{info.reason}</p>
+                  </div>
+                )}
+                {info.status === "SUBMISSION_ACCEPTED" && (
+                  <p className="text-xs text-gray-600 bg-gray-50 rounded-xl px-4 py-3">Mission validée avec {info.vues} vues, pour {info.gain} F. La rémunération suit un barème par vue (0,70 F jusqu&apos;à 300 vues…), ce n&apos;est plus 1 F par vue.</p>
+                )}
+                <div className="flex gap-3">
+                  {info.proof_url && (
+                    <a href={info.proof_url} target="_blank" rel="noreferrer" className="shrink-0">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={info.proof_url} alt="Ta capture" className="w-24 h-36 object-cover object-top rounded-xl border border-gray-200" />
+                    </a>
+                  )}
+                  {info.legend && (
+                    <div className="min-w-0">
+                      <p className="text-[11px] font-bold uppercase tracking-wide text-gray-400 mb-1">Légende attendue</p>
+                      <p className="text-xs text-gray-700 leading-relaxed line-clamp-6">{info.legend}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {guided && (
+              <div>
+                <p className="text-gray-500 text-xs font-semibold uppercase tracking-wide mb-2">Qu&apos;est-ce que tu contestes ? <span className="text-red-500">*</span></p>
+                <div className="space-y-2">
+                  {info!.options.map((o) => (
+                    <label key={o.code} className={`flex items-center gap-3 rounded-xl border px-3 py-2.5 text-sm cursor-pointer ${code === o.code ? "border-orange-400 bg-orange-50" : "border-gray-200"}`}>
+                      <input type="radio" name="contest" checked={code === o.code} onChange={() => setCode(o.code)} className="accent-orange-500" />
+                      <span className="text-gray-800">{o.label}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <div>
               <label className="text-gray-500 text-xs font-semibold uppercase tracking-wide block mb-1.5">
-                Votre message <span className="text-red-500">*</span>
+                {needText ? <>Explique <span className="text-red-500">*</span></> : "Précision (facultatif)"}
               </label>
               <textarea
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
-                rows={5}
-                minLength={20}
+                rows={needText ? 4 : 2}
                 maxLength={500}
-                required
-                placeholder="Expliquez pourquoi vous contestez cette décision… (20 caractères minimum)"
+                placeholder={needText ? "Explique précisément ce qui ne va pas (20 caractères minimum)" : "Ajoute un détail si besoin"}
                 className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300 resize-none"
               />
               <p className="text-gray-400 text-[10px] mt-1 text-right">{message.length}/500</p>
             </div>
 
             <div className="flex gap-3">
-              <button
-                type="button"
-                onClick={onClose}
-                className="flex-1 py-3.5 rounded-2xl border border-gray-200 text-gray-600 text-sm font-semibold"
-              >
-                Annuler
-              </button>
+              <button type="button" onClick={onClose} className="flex-1 py-3.5 rounded-2xl border border-gray-200 text-gray-600 text-sm font-semibold">Annuler</button>
               <button
                 type="submit"
-                disabled={submitting || message.length < 20}
+                disabled={submitting || !ready}
                 className="flex-1 py-3.5 rounded-2xl bg-orange-500 text-white text-sm font-semibold disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 {submitting && <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />}
