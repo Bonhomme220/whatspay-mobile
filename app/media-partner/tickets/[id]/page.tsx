@@ -10,6 +10,7 @@ interface TicketDetail {
   id: string; subject: string; status: string; created_at: string;
   messages: Message[];
   ai_typing?: boolean;
+  rating?: number | null;
 }
 
 function fmtDate(d: string) {
@@ -63,6 +64,14 @@ export default function MediaPartnerTicketDetailPage() {
     });
     return () => { window.clearInterval(timer); stop(); };
   }, [id]);
+
+  // Note du client sur un ticket fermé (👍 réglé / 👎 pas réglé).
+  async function rate(v: 1 | -1) {
+    try {
+      const r = await api.post<{ rating: number }>(`/tickets/${id}/rate`, { rating: v });
+      setTicket((t) => (t ? { ...t, rating: r.rating } : t));
+    } catch { /* sans gravité */ }
+  }
 
   async function sendReply(e: React.FormEvent) {
     e.preventDefault();
@@ -133,7 +142,17 @@ export default function MediaPartnerTicketDetailPage() {
       {/* Reply bar */}
       <div className="fixed bottom-16 left-0 right-0 bg-white border-t border-gray-100 px-4 py-3">
         {isClosed ? (
-          <p className="text-center text-gray-400 text-xs py-1">Ce ticket est fermé.</p>
+          ticket.rating == null ? (
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-sm text-gray-700 font-medium">Ton problème est-il réglé ?</span>
+              <div className="flex gap-2">
+                <button type="button" onClick={() => rate(1)} className="px-3 py-1.5 rounded-xl bg-green-50 text-green-700 text-sm font-semibold">👍 Oui</button>
+                <button type="button" onClick={() => rate(-1)} className="px-3 py-1.5 rounded-xl bg-red-50 text-red-700 text-sm font-semibold">👎 Non</button>
+              </div>
+            </div>
+          ) : (
+            <p className="text-center text-gray-400 text-xs py-1">Ticket fermé · merci pour ton retour {ticket.rating > 0 ? "👍" : "👎"}{ticket.rating < 0 ? " — ouvre un nouveau ticket pour qu'on reprenne ta demande." : ""}</p>
+          )
         ) : (
           <form onSubmit={sendReply} className="flex gap-2">
             {error && <p className="text-red-500 text-xs absolute -top-6 left-4">{error}</p>}
